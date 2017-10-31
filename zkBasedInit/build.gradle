@@ -1,0 +1,59 @@
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+//apply plugin: 'io.franzbecker.gradle-lombok'
+
+apply plugin: 'application'
+mainClassName = 'hello.HelloWorld'
+
+repositories {
+    mavenCentral()
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+//curatorVersion= '4.0.0'
+
+dependencies {
+
+	compile group: 'org.apache.curator', name: 'curator-recipes', version: '4.0.0'
+	compile group: 'org.apache.curator', name: 'curator-x-async', version: '4.0.0'
+	
+	//http://curator.apache.org/zk-compatibility.html
+/*	
+	compile group: 'org.apache.zookeeper', name: 'zookeeper', version: '3.4.10'
+	compile('org.apache.curator:curator-recipes:4.0.0') {
+   //compile('org.apache.curator:curator-recipes:$curatorVersion') {
+	  //exclude module:'zookeeper'
+	  exclude group:'org.apache.zookeeper'
+//, module:'zookeeper'
+	  //exclude('org.apache.zookeeper:zookeeper')
+	}*/
+
+	compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.+'
+	compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.+'
+
+	compile group: 'com.google.inject', name: 'guice', version: '4.1.0'
+	
+	compile group: 'org.apache.commons', name: 'commons-configuration2', version: '2.2'
+	compile group: 'commons-beanutils', name: 'commons-beanutils', version: '1.9.3'
+	
+	compileOnly  'org.projectlombok:lombok:1.16.18'
+	testCompile "junit:junit:4.12"
+
+}
+
+
+configurations {
+	// so that lombok is available for tests
+    testCompile.extendsFrom compileOnly
+}
+
+/*
+jar {
+	baseName = 'gs-gradle'
+	version =  '0.1.0'
+}*/
+
+

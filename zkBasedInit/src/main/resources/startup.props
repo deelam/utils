@@ -1,0 +1,24 @@
+
+#default: ZOOKEEPER.CONNECT=127.0.0.1:2181
+#ZOOKEEPER.STARTUPPATH=/test/app2/startup/
+
+amq.commbus.host=127.0.0.1
+amq.commbus.port=2181
+amq.classname=net.deelam.zkbasedinit.FancyComponent
+
+jc1.consumer.name="job consumer 1"
+jc1.classname=net.deelam.zkbasedinit.FancyComponent
+jc1.include=workerType.include, amq.commbus
+jc1.requiredComponents=amq
+
+workerType.include=jobberA.jboard.msgQ, jobStatus.reporter
+workerType.classname=net.deelam.zkbasedinit.FancyComponent
+
+jobberA.jboard.msgQ.inboxAddr=jobBoardA
+jobberA.include=jobStatus.reporter
+jobberA.classname=net.deelam.zkbasedinit.FancyComponent
+
+jobStatus.reporter.pubAddr=jobStatusNotifications
+jobStatus.classname=net.deelam.zkbasedinit.FancyComponent
+
+

@@ -1,0 +1,11 @@
+#!/bin/bash 
+
+setupGradle(){
+	GRADLE_VER=4.2
+
+	# assumes SDKMAN is installed
+	sdk install gradle $GRADLE_VER
+	# create gradlew script and associated directories
+	gradle wrapper --gradle-version $GRADLE_VER
+}
+
