@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+<log4j:configuration debug="false"
+	xmlns:log4j='http://jakarta.apache.org/log4j/'>
+ 
+	<appender name="console" class="org.apache.log4j.ConsoleAppender">
+	   <layout class="org.apache.log4j.PatternLayout">
+		<param name="ConversionPattern" 
+		  value="%d{yyyy-MM-dd HH:mm:ss} %-5p %t (%F:%L): %m%n" />
+	    </layout>
+	</appender>
+   <appender name="dailyfile" class="org.apache.log4j.DailyRollingFileAppender">
+		<param name="file" value="${JvmConfig}.log"/>
+		<param name="datePattern" value="'.'yyyy-MM-dd-a"/>
+	   <layout class="org.apache.log4j.PatternLayout">
+		<param name="ConversionPattern" 
+		  value="%d{yyyy-MM-dd HH:mm:ss} %-5p %t (%F:%L): %m%n" />
+	    </layout>
+	</appender>
+<!--
+   <logger name="edu.utexas.arlut.dl.vertx">
+		<level value="INFO" />
+	</logger>
+-->
+
+   <logger name="net.deelam">
+		<level value="DEBUG" />
+	</logger>
+
+   <logger name="io.vertx.spi.cluster.hazelcast">
+		<level value="INFO" />
+	</logger>
+   <logger name="org.apache.zookeeper">
+		<level value="WARN" />
+	</logger>
+	<root>
+		<level value="INFO" />
+		<appender-ref ref="console" />
+<!--		<appender-ref ref="dailyfile" /> -->
+	</root>
+ 
+</log4j:configuration>
