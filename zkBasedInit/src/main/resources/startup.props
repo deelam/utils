@@ -4,12 +4,13 @@
 
 amq.commbus.host=127.0.0.1
 amq.commbus.port=2181
-amq.classname=net.deelam.zkbasedinit.FancyComponent
+amq.classname=net.deelam.zkbasedinit.AmqComponent
 
 jc1.consumer.name="job consumer 1"
 jc1.classname=net.deelam.zkbasedinit.FancyComponent
 jc1.include=workerType.include, amq.commbus
 jc1.requiredComponents=amq
+#jc1.requiredPaths=amq/connectionUrl
 
 workerType.include=jobberA.jboard.msgQ, jobStatus.reporter
 workerType.classname=net.deelam.zkbasedinit.FancyComponent

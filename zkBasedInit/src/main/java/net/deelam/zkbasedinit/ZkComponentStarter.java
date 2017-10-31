@@ -1,7 +1,9 @@
 package net.deelam.zkbasedinit;
 
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -128,6 +130,7 @@ public class ZkComponentStarter implements ZkComponentStarterI {
                 case NodeDataChanged:
                   try {
                     if (component.reinit(getConfig(path))) {
+                      setSharedValues();
                       getAsync().setData().forPath(path + STARTED_SUBPATH);
                     }
                   } catch (Exception e) {
@@ -167,6 +170,7 @@ public class ZkComponentStarter implements ZkComponentStarterI {
         if (component == null)
           component = instantiateComponent(props);
         component.start(props);
+        setSharedValues();
         client.create().withMode(CreateMode.EPHEMERAL).forPath(path + STARTED_SUBPATH);
         componentStartedCallback.accept(component);
         asyncWatchForStartPathEvent();
@@ -179,6 +183,28 @@ public class ZkComponentStarter implements ZkComponentStarterI {
       log.error("Could not start component with path=" + path, e);
       return false;
     }
+  }
+
+  private void setSharedValues() {
+    component.getSharedValuesMap().forEach((subpath, val) -> {
+      String fullpath = Paths.get(path, subpath).toString();
+      log.info("Setting shared value: {}={}", fullpath, val);
+      byte[] data = null;
+      if (val instanceof byte[])
+        data = (byte[]) val;
+      else
+        try {
+          data = SerializeUtils.serialize(val);
+        } catch (IOException e) {
+          log.error("When serializing shared values", e);
+        }
+      if (data != null)
+        try {
+          client.create().withMode(CreateMode.EPHEMERAL).forPath(fullpath, data);
+        } catch (Exception e) {
+          log.error("When creating node for shared value at: " + fullpath, e);
+        }
+    });
   }
 
   private ComponentI instantiateComponent(Properties props)
@@ -258,7 +284,7 @@ public class ZkComponentStarter implements ZkComponentStarterI {
     CuratorFramework cf = injector.getInstance(CuratorFramework.class);
     String startupPath =
         injector.getInstance(Key.get(String.class, Names.named(Constants.ZOOKEEPER_STARTUPPATH)));
-    
+
     // starts components given an compId and ComponentI subclass
     for (String compId : compIdList) {
       startComponent(injector, compId);
@@ -266,13 +292,15 @@ public class ZkComponentStarter implements ZkComponentStarterI {
     }
 
     Thread.sleep(1000);
-    log.info("Awaiting components to start: {}", moduleZkComponentStarter.getStartedLatch().getCount());
+    log.info("Awaiting components to start: {}",
+        moduleZkComponentStarter.getStartedLatch().getCount());
     moduleZkComponentStarter.getStartedLatch().await();
 
     log.info("All components started: {}", compIdList);
     log.info("Tree after all components started: {}", ZkConnector.treeToString(cf, startupPath));
     Thread.sleep(1000);
-    log.info("Awaiting components to finish: {}", moduleZkComponentStarter.getCompletedLatch().getCount());
+    log.info("Awaiting components to finish: {}",
+        moduleZkComponentStarter.getCompletedLatch().getCount());
     moduleZkComponentStarter.getCompletedLatch().await();
 
     log.info("Tree after stopped: {}", ZkConnector.treeToString(cf, startupPath));
@@ -282,7 +310,7 @@ public class ZkComponentStarter implements ZkComponentStarterI {
     ComponentI aComp = null;
     if (compId.endsWith("Type")) {
       ZkComponentTypeStarter compStarter = injector.getInstance(ZkComponentTypeStarter.class);
-      compStarter.startWithCopyOf(compId, compId.substring(0, compId.length()-4), aComp);
+      compStarter.startWithCopyOf(compId, compId.substring(0, compId.length() - 4), aComp);
     } else {
       ZkComponentStarter compStarter = injector.getInstance(ZkComponentStarter.class);
       compStarter.startWithId(compId, aComp);

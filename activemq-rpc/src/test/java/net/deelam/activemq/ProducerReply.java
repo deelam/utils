@@ -6,14 +6,11 @@ import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
-import javax.jms.MessageListener;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
 import javax.jms.TextMessage;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import net.deelam.activemq.MQClient;
 
 public class ProducerReply {
   static Logger logger = LoggerFactory.getLogger(ProducerReply.class);
@@ -33,9 +30,7 @@ public class ProducerReply {
     
     tempDest = session.createTemporaryQueue();
     MessageConsumer responseConsumer = session.createConsumer(tempDest);
-    responseConsumer.setMessageListener(new MessageListener() {
-      @Override
-      public void onMessage(Message message) {
+    responseConsumer.setMessageListener((message)->{
         try {
           if (message instanceof TextMessage) {
             TextMessage txtMessage = (TextMessage) message;
@@ -60,7 +55,6 @@ public class ProducerReply {
           System.err.println("Caught:" + e);
           e.printStackTrace();
         }
-      }
     });
   }
 

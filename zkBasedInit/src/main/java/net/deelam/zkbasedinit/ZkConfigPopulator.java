@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.curator.framework.CuratorFramework;
@@ -67,17 +68,27 @@ public class ZkConfigPopulator {
   }
 
   private List<String> getRemainingReqPathsFor(Configuration configuration) {
-    List<String> reqCompIds = configuration.getList(String.class, "requiredComponents");
-    if (reqCompIds == null)
+    List<String> paths = getPaths(configuration.getList(String.class, "requiredComponents"),
+        cId -> cId + ZkComponentStarter.STARTED_SUBPATH);
+
+    List<String> reqPaths =
+        getPaths(configuration.getList(String.class, "requiredPaths"), Function.identity());
+
+    paths.addAll(reqPaths);
+    return paths;
+  }
+
+  private List<String> getPaths(List<String> reqPaths, Function<String, String> pathMapper) {
+    if (reqPaths == null)
       return Collections.emptyList();
-    return reqCompIds.stream().map(cId -> {
-      String startedPath = appPrefix + cId + ZkComponentStarter.STARTED_SUBPATH;
+    return reqPaths.stream().map(path -> {
+      String fullPath = appPrefix + pathMapper.apply(path);
       try {
-        if (client.checkExists().forPath(startedPath) == null)
-          return startedPath;
+        if (client.checkExists().forPath(fullPath) == null)
+          return fullPath;
       } catch (Exception e) {
         log.error("When checking if required path exists", e);
-        return startedPath;
+        return fullPath;
       }
       return null;
     }).filter(Objects::nonNull).collect(Collectors.toList());
@@ -129,8 +140,8 @@ public class ZkConfigPopulator {
 
     Injector injector = Guice.createInjector(new GModuleZooKeeper(config));
     ZkConfigPopulator cp = injector.getInstance(ZkConfigPopulator.class);
-    
-    boolean cleanUpOnly=args.length>0 && "clean".equals(args[0]);
+
+    boolean cleanUpOnly = args.length > 0 && "clean".equals(args[0]);
     if (cleanUpOnly) {
       cp.cleanup();
     } else {
@@ -142,10 +153,10 @@ public class ZkConfigPopulator {
   private void populateConfigurations(Configuration config) throws InterruptedException {
     Map<String, Configuration> subConfigMap = ConfigReader.extractSubconfigMap(config);
     log.info("componentIds in config: {}", subConfigMap.keySet());
-    
-    CountDownLatch completeLatch=new CountDownLatch(subConfigMap.size());
-    setCompleteCallback(p->completeLatch.countDown());
-    
+
+    CountDownLatch completeLatch = new CountDownLatch(subConfigMap.size());
+    setCompleteCallback(p -> completeLatch.countDown());
+
     subConfigMap.entrySet().forEach(e -> {
       String compId = e.getKey();
       Configuration subconfig = e.getValue();
