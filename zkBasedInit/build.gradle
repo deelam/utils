@@ -1,11 +1,12 @@
 
+apply plugin: 'maven'
 apply plugin: 'java'
 apply plugin: 'eclipse'
 
 //apply plugin: 'io.franzbecker.gradle-lombok'
 
-apply plugin: 'application'
-mainClassName = 'hello.HelloWorld'
+//apply plugin: 'application'
+//mainClassName = 'hello.HelloWorld'
 
 repositories {
     mavenCentral()
@@ -14,6 +15,11 @@ repositories {
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 //curatorVersion= '4.0.0'
+
+group = 'net.deelam'
+version = '0.1.0'
+jar.baseName = 'zkbasedinit'
+
 
 dependencies {
 
@@ -32,7 +38,7 @@ dependencies {
 	}*/
 
 	compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.+'
-	compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.+'
+	compileOnly group: 'ch.qos.logback', name: 'logback-classic', version: '1.+'
 
 	compile group: 'com.google.inject', name: 'guice', version: '4.1.0'
 	
@@ -44,16 +50,9 @@ dependencies {
 
 }
 
-
 configurations {
 	// so that lombok is available for tests
     testCompile.extendsFrom compileOnly
 }
-
-/*
-jar {
-	baseName = 'gs-gradle'
-	version =  '0.1.0'
-}*/
 
 

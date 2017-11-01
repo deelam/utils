@@ -74,7 +74,8 @@ public class ZkComponentStopper {
   }
 
   public static void main(String[] args) throws Exception {
-    Configuration config = ConfigReader.parseFile("startup.props");
+    String propFile = (args.length > 0) ? args[0] : "startup.props";
+    Configuration config = ConfigReader.parseFile(propFile);
     log.info("{}\n------", ConfigReader.toStringConfig(config, config.getKeys()));
 
     Injector injector = Guice.createInjector(new GModuleZooKeeper(config));

@@ -42,6 +42,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ZkComponentStarter implements ZkComponentStarterI {
 
   static final String CONF_SUBPATH = ZkConfigPopulator.CONF_SUBPATH;
+  static final String CONFRESOLVED_SUBPATH = ZkConfigPopulator.CONFRESOLVED_SUBPATH;
 
   /**
    * znode creation signifies CONF_SUBPATH is ready; znode deletion triggers component to stop
@@ -94,8 +95,7 @@ public class ZkComponentStarter implements ZkComponentStarterI {
     if (initExists == null) {
       // path may not be created yet by ZkConfigPopulator
       // it must exist in order to watch for subpaths
-      if (client.checkExists().forPath(path) == null)
-        client.create().creatingParentsIfNeeded().forPath(path);
+      client.checkExists().creatingParentsIfNeeded().forPath(path);
       asyncWatchForInitPathEvent();
     } else {
       startAndWatchOtherwiseQuit();
@@ -262,11 +262,19 @@ public class ZkComponentStarter implements ZkComponentStarterI {
     log.info("Got config: {}: {}", pathPrefix, configMap);
     configMap.put(ComponentI.ZK_PATH, path);
     configMap.put(ComponentI.COMPONENT_ID, componentId);
+    
+    // add values for refPaths
+    if(client.checkExists().forPath(pathPrefix + CONFRESOLVED_SUBPATH)!=null) {
+      byte[] refPathData = client.getData().forPath(pathPrefix + CONFRESOLVED_SUBPATH);
+      Properties configRefMap = (Properties) SerializeUtils.deserialize(refPathData);
+      configMap.putAll(configRefMap);
+    }
     return configMap;
   }
 
   public static void main(String[] args) throws Exception {
-    Configuration config = ConfigReader.parseFile("startup.props");
+    String propFile = (args.length > 0) ? args[0] : "startup.props";
+    Configuration config = ConfigReader.parseFile(propFile);
     log.info("{}\n------", ConfigReader.toStringConfig(config, config.getKeys()));
 
     String cIds = System.getProperty("componentIds",

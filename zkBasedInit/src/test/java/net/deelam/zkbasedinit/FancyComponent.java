@@ -18,7 +18,7 @@ public class FancyComponent implements ComponentI {
   public void start(Properties configMap) {
     componentId=(String) configMap.get(COMPONENT_ID);
     log.info("Starting component '{}' with: {}", componentId, configMap);
-    //TODO: populate FancyComponentConfiguration instance and print remaining unused properties
+    //should populate FancyComponentConfiguration instance and print remaining unused properties
   }
 
   @Override

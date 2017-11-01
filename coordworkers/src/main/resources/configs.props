@@ -1,0 +1,32 @@
+
+#default: ZOOKEEPER.CONNECT=127.0.0.1:2181
+#ZOOKEEPER.STARTUPPATH=/test/coordworkers/startup/
+include=startup.props
+
+# ActiveMQ service: shares connectionUrl
+amq.classname=net.deelam.coordworkers.AmqServiceComp
+amq.brokerUrl=tcp://localhost:45678
+
+needsAmq.brokerUrl.ref=amq/connectionUrl
+
+# Submitter: sends to submitJob queue; listens to jobStatus topic
+submitterA.classname=net.deelam.coordworkers.SubmitterComp
+submitterA.include=needsAmq, jobberB.msgQ, jobStatusProps.msgT
+
+# Jobber: shares submitJob queue and availableJobs topic names; listens to jobStatus topic
+jobberB.classname=net.deelam.coordworkers.JobberComp
+jobberB.msgQ.submitJob=jobberB.rpc.submitJob
+jobberB.msgT.availJobs=jobs.available
+jobberB.include=needsAmq, jobStatusProps.msgT.jobDone, jobStatusProps.msgT.jobFailed
+
+# Worker: listens on workers and availableJobs topics; publishes to jobStatus topic
+workerType.classname=net.deelam.coordworkers.WorkerComp
+workerType.include=needsAmq, jobberB.msgQ, jobberB.msgT, jobStatusProps.msgT
+
+# jobStatusProps is just a set of properties
+# Not for instantiation: jobStatusProps.classname=net.deelam.coordworkers.JobStatusComp
+jobStatusProps.msgT.jobState=job.status.state
+jobStatusProps.msgT.jobDone=job.status.done
+jobStatusProps.msgT.jobFailed=job.status.failed
+
+

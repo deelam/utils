@@ -5,7 +5,7 @@
 	<groupId>net.deelam</groupId>
 	<artifactId>activemq-rpc</artifactId>
 	<packaging>jar</packaging>
-	<version>0.1</version>
+	<version>0.1.0</version>
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
@@ -14,6 +14,7 @@
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-log4j12</artifactId>
 			<version>1.7.5</version>
+			<scope>provided</scope>
 		</dependency>
 
 		<dependency>

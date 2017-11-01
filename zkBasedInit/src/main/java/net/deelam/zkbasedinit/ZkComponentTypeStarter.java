@@ -1,6 +1,6 @@
 package net.deelam.zkbasedinit;
 
-import static net.deelam.zkbasedinit.ZkComponentStarter.CONF_SUBPATH;
+import static net.deelam.zkbasedinit.ZkComponentStarter.*;
 import static net.deelam.zkbasedinit.ZkComponentStarter.INIT_SUBPATH;
 import java.nio.file.Paths;
 import java.util.EnumSet;
@@ -51,8 +51,7 @@ public class ZkComponentTypeStarter implements ZkComponentStarterI {
     if (initExists == null) {
       // path may not be created yet by ZkConfigPopulator
       // it must exist in order to watch for subpaths
-      if (client.checkExists().forPath(sourcePath) == null)
-        client.create().creatingParentsIfNeeded().forPath(sourcePath);
+      client.checkExists().creatingParentsIfNeeded().forPath(sourcePath);
       asyncWatchForInitPathEvent(sourcePath, componentPrefix, comp);
     } else {
       copyConfigAndStart(sourcePath, componentPrefix, comp);
@@ -131,6 +130,10 @@ public class ZkComponentTypeStarter implements ZkComponentStarterI {
     // copy sourcePath/conf to this new znode
     byte[] confData = client.getData().forPath(sourcePath + CONF_SUBPATH);
     client.create().forPath(newPath + CONF_SUBPATH, confData);
+    
+    byte[] confRefData = client.getData().forPath(sourcePath + CONFRESOLVED_SUBPATH);
+    client.create().forPath(newPath + CONFRESOLVED_SUBPATH, confRefData);
+    
     client.create().forPath(newPath + INIT_SUBPATH);
   }
 
