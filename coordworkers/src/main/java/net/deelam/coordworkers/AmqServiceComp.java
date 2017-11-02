@@ -3,29 +3,36 @@ package net.deelam.coordworkers;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import org.apache.activemq.broker.BrokerService;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import net.deelam.activemq.Constants;
+import net.deelam.activemq.MQService;
 import net.deelam.zkbasedinit.ComponentI;
 
 @Slf4j
 public class AmqServiceComp implements ComponentI {
 
   @Getter
-  private boolean running = true;
+  private boolean running = false;
 
-  @Getter
-  private String componentId;
+  public String getComponentId() {
+    return config.componentId;
+  }
 
   AmqServiceCompConfig config;
+  private BrokerService broker;
 
-  class AmqServiceCompConfig extends AbstractCompConfig{
+  class AmqServiceCompConfig extends AbstractCompConfig {
 
-    final String brokerUrl;
+    final String brokerName;
+    final String brokerUrls;
 
     // populate and print remaining unused properties
     public AmqServiceCompConfig(Properties props) {
       super(props);
-      brokerUrl=useRequiredProperty(props, "brokerUrl");
+      brokerName = useProperty(props, "brokerName", "myAmqBroker");
+      brokerUrls = useRequiredProperty(props, "brokerUrl");
       checkRemainingProps(props);
     }
   }
@@ -33,28 +40,46 @@ public class AmqServiceComp implements ComponentI {
   @Override
   public Map<String, Object> getSharedValuesMap() {
     Map<String, Object> map = new HashMap<>();
-    map.put("connectionUrl", config.brokerUrl);
+    map.put("connectionUrl", config.brokerUrls);
     log.info("Sharing values to zookeeper: {}", map);
     return map;
   }
-  
-  @Override
-  public void start(Properties configMap) {
-    componentId = configMap.getProperty(COMPONENT_ID);
-    log.info("Starting component '{}' with: {}", componentId, configMap);
-    config = new AmqServiceCompConfig(configMap);
-  }
 
   @Override
-  public boolean reinit(Properties configMap) {
-    log.info("Reinitializing component '{}' with: {}", componentId, configMap);
-    return true;
+  public void start(Properties configMap) {
+    config = new AmqServiceCompConfig(configMap);
+    String[] brokerUrls = Constants.parseBrokerUrls(config.brokerUrls);
+    if (MQService.jmsServiceExists(brokerUrls[0])) {
+      log.error("JMS service already exists at "+brokerUrls[0]);
+    } else {
+      try {
+        broker = MQService.createBrokerService(config.brokerName, brokerUrls);
+        running = true;
+      } catch (Exception e) {
+        log.error("When starting ActiveMQ service", e);
+      }
+    }
   }
 
   @Override
   public void stop() {
-    log.info("Stopping component: {}", componentId);
-    running = false;
+    log.info("Stopping component: {}", config.componentId);
+    if (broker != null) {
+      while (running)
+        try {
+          if (broker.isStopping()) {
+            log.info("Waiting for ActiveMQ service to stop ...");
+            Thread.sleep(5000);
+          } else {
+            log.info("Stopping ActiveMQ service");
+            broker.stop();
+          }
+        } catch (Exception e) {
+          log.error("When stopping ActiveMQ service", e);
+        } finally {
+          running = !broker.isStopped();
+        }
+    }
   }
 
 

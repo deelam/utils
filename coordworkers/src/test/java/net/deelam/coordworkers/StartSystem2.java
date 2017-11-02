@@ -4,7 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 import net.deelam.zkbasedinit.ZkComponentStarter;
 import net.deelam.zkbasedinit.ZkComponentStopper;
 import net.deelam.zkbasedinit.ZkConfigPopulator;
-import net.deelam.zkbasedinit.ZkConnector;
 
 /**
  * <pre>
@@ -22,9 +21,16 @@ import net.deelam.zkbasedinit.ZkConnector;
  * </pre>
  */
 @Slf4j
-public class StartSystem1 {
+public class StartSystem2 {
 
   public static void main(String[] args) throws Exception {
+    try {
+      ZkComponentStopper.main(args);
+      Thread.sleep(1000);
+    } catch (Exception e) {
+      log.info("Tree doesn't exist yet");
+    }
+
     // in JVM 1, Start ZK and populate
     new Thread(() -> {
       try {
@@ -35,26 +41,17 @@ public class StartSystem1 {
     }, "addConfigToZK").start();
 
     // in JVM 2, Start components
+    // TODO: split into separate JVMs
     new Thread(() -> {
       try {
-        System.setProperty("componentIds","amq, submitterA, jobberB, workerType");
+        System.setProperty("componentIds", "amq, submitterA, jobberB, workerType");
         ZkComponentStarter.main(args);
       } catch (Exception e) {
         e.printStackTrace();
       }
     }, "startComponents").start();
 
-    Thread.sleep(5000);
-    // optionally
-    new Thread(() -> {
-      try {
-        ZkConnector.main(args);
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }, "printTree").start();
-
-    Thread.sleep(5000);
+    Thread.sleep(10000);
 
     // in JVM 3
     new Thread(() -> {
