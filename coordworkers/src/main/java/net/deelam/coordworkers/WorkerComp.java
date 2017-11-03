@@ -11,6 +11,7 @@ import javax.jms.MessageProducer;
 import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.TextMessage;
+import javax.jms.Topic;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.deelam.activemq.Constants;
@@ -68,12 +69,16 @@ public class WorkerComp implements ComponentI {
       conn.start();
       session = conn.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
-      MessageProducer msgResponder =
+      MessageProducer msgProducer =
           MQClient.createGenericMsgResponder(session, config.deliveryMode);
 
-      handleAvailJobsMsg(msgResponder, handleConfirmPickQueueMsg());
+      Topic jobStateTopic = session.createTopic(config.jobStateTopic);
+      Topic jobDoneTopic = session.createTopic(config.jobDoneTopic);
+      Topic jobFailedTopic = session.createTopic(config.jobFailedTopic);
+      handleAvailJobsMsg(msgProducer,
+          handleConfirmPickQueueMsg(msgProducer, jobStateTopic, jobDoneTopic, jobFailedTopic));
 
-      // TODO: periodically send msg to getJobsTopic
+      // TODO: periodically send msg to getJobsTopic?
 
       running = true;
     } catch (JMSException e) {
@@ -92,7 +97,7 @@ public class WorkerComp implements ComponentI {
     running = false;
   }
 
-  boolean acceptingJobs=true;
+  boolean acceptingJobs = true;
 
   private void handleAvailJobsMsg(MessageProducer msgResponder, Destination confirmedQueue) {
     MQClient.createTopicConsumer(session, config.availJobsTopic, message -> {
@@ -125,7 +130,8 @@ public class WorkerComp implements ComponentI {
 
   Thread workerThread = null;
 
-  private Destination handleConfirmPickQueueMsg() throws JMSException {
+  private Destination handleConfirmPickQueueMsg(MessageProducer msgResponder, Topic jobStateTopic,
+      Topic jobDoneTopic, Topic jobFailedTopic) throws JMSException {
     Queue confirmPickQueue = session.createQueue(config.confirmPickQueue);
     MessageConsumer consumer = session.createConsumer(confirmPickQueue);
     consumer.setMessageListener(m -> {
@@ -134,10 +140,21 @@ public class WorkerComp implements ComponentI {
       if (goAhead) {
         // TODO: start JobRunner thread with StatusReporter
         workerThread = new Thread(() -> {
+          Object job="currJob";
+          try {
+            msgResponder.send(jobStateTopic, createStateMsg(job, 1));
+          } catch (JMSException e1) {
+            e1.printStackTrace();
+          }
           log.info("Working...");
           try {
             Thread.sleep(5000);
           } catch (InterruptedException e) {
+            e.printStackTrace();
+          }
+          try {
+            msgResponder.send(jobDoneTopic, createDoneMsg(job));
+          } catch (JMSException e) {
             e.printStackTrace();
           }
           acceptingJobs = true;
@@ -148,6 +165,18 @@ public class WorkerComp implements ComponentI {
       }
     });
     return confirmPickQueue;
+  }
+
+  private Message createStateMsg(Object job, int i) throws JMSException {
+    Message msg = session.createTextMessage(getComponentId() + " job state: "+job);
+    msg.setStringProperty("stats", getComponentId());
+    return msg;
+  }
+
+  private Message createDoneMsg(Object job) throws JMSException {
+    Message msg = session.createTextMessage(getComponentId() + " job done: "+job);
+    msg.setStringProperty("stats", getComponentId());
+    return msg;
   }
 
 }

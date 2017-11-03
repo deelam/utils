@@ -26,10 +26,14 @@ public class ZkConnector {
     return client;
   }
 
-  public static String treeToString(CuratorFramework cf, String startupPath) throws Exception {
-    return ZKUtil
-        .listSubTreeBFS(cf.getZookeeperClient().getZooKeeper(), Paths.get(startupPath).toString())
-        .toString().replaceAll(",", "\n  ");
+  public static String treeToString(CuratorFramework cf, String startupPath) {
+    try {
+      return ZKUtil
+          .listSubTreeBFS(cf.getZookeeperClient().getZooKeeper(), Paths.get(startupPath).toString())
+          .toString().replaceAll(",", "\n  ");
+    } catch (Exception e) {
+      return "Path does not exist: "+Paths.get(startupPath);
+    }
   }
 
   static void deletePath(CuratorFramework cf, String path) throws Exception {
