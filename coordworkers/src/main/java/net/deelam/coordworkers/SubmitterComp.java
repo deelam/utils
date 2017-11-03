@@ -7,6 +7,7 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
+import javax.jms.TextMessage;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.deelam.activemq.Constants;
@@ -57,11 +58,20 @@ public class SubmitterComp implements ComponentI {
       conn.start();
       session = conn.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
-      MsgHelper.listenToJobStatusMsgs(session, config.jobStateTopic, config.jobDoneTopic,
-          config.jobFailedTopic);
-
       MessageProducer jobSubmitterMP =
           MQClient.createQueueMsgSender(session, config.submitJobQueue, config.deliveryMode);
+
+      MsgHelper.listenToJobStatusMsgs(session, config.jobStateTopic, config.jobDoneTopic, null);
+      MQClient.createTopicConsumer(session, config.jobFailedTopic, message -> {
+        if (message instanceof TextMessage) {
+          TextMessage txtMessage = (TextMessage) message;
+          String currMsg = txtMessage.getText();
+          log.info("Submitting repeat job due to: {}", currMsg);
+          sendSubmitJobMsg(jobSubmitterMP);
+        } else {
+          log.error("Invalid statusMessage received: {}", message);
+        }
+      });
 
       new Thread(() -> {
         try {

@@ -35,7 +35,7 @@ public final class MQClient {
     try {
       return createConsumerFor(session.createQueue(queueName), session, listener);
     } catch (JMSException e) {
-      log.error("When creating MessageConsumer for: {}", queueName, e);
+      log.error("When creating Queue for: {}", queueName, e);
       throw new RuntimeException(e);
     }
   }
@@ -45,22 +45,27 @@ public final class MQClient {
     try {
       return createConsumerFor(session.createTopic(topicName), session, listener);
     } catch (JMSException e) {
-      log.error("When creating MessageConsumer for: {}", topicName, e);
+      log.error("When creating Topic for: {}", topicName, e);
       throw new RuntimeException(e);
     }
   }
 
   public static MessageConsumer createConsumerFor(Destination dest, Session session,
-      MsgHandler listener) throws JMSException {
-    MessageConsumer consumer = session.createConsumer(dest);
-    consumer.setMessageListener(msg -> {
-      try {
-        listener.handle(msg);
-      } catch (JMSException e) {
-        log.error("When reading message: {}", msg, e);
-      }
-    });
-    return consumer;
+      MsgHandler listener) {
+    try {
+      MessageConsumer consumer = session.createConsumer(dest);
+      consumer.setMessageListener(msg -> {
+        try {
+          listener.handle(msg);
+        } catch (JMSException e) {
+          log.error("When reading message: {}", msg, e);
+        }
+      });
+      return consumer;
+    } catch (JMSException e) {
+      log.error("When creating MessageConsumer for: {}", dest, e);
+      throw new RuntimeException(e);
+    }
   }
 
   public static interface MsgSender {

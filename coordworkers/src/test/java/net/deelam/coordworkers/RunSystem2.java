@@ -27,10 +27,12 @@ public class RunSystem2 {
       log.info("Tree doesn't exist yet");
     }
 
+    System.setProperty("componentIds", "amq, submitterA, jobberB, workerType");
     // in JVM 1, Start ZK and populate
     new Thread(() -> {
       try {
         ZkConfigPopulator.main(new String[] {"configs.props"});
+        //Thread.sleep(1000); // fix for possible race condition with ZkComponentStarter?
       } catch (Exception e) {
         e.printStackTrace();
       }
@@ -39,14 +41,13 @@ public class RunSystem2 {
     // in JVM 2, Start components
     new Thread(() -> {
       try {
-        System.setProperty("componentIds", "amq, submitterA, jobberB, workerType");
         ZkComponentStarter.main(args);
       } catch (Exception e) {
         e.printStackTrace();
       }
     }, "startComponents").start();
 
-    Thread.sleep(10000);
+    Thread.sleep(30000);
 
     // in JVM 3
     new Thread(() -> {

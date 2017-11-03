@@ -31,6 +31,7 @@ public class MQService {
 
   public static BrokerService createBrokerService(String brokerName, String... bindAddresses) throws Exception {
     BrokerService broker = new BrokerService();
+    logger.info("Created broker '{}'", brokerName);
     broker.setBrokerName(brokerName);
     // configure the broker
     for (String addr : bindAddresses){

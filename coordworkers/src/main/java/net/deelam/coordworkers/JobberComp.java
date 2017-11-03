@@ -150,7 +150,12 @@ public class JobberComp implements ComponentI {
     consumer.setMessageListener(m -> {
       log.info("Got pickedJobMsg: {}", m);
       try {
-        msgResponder.send(m.getJMSReplyTo(), createConfirmPickedJobResponse(m));
+        Message response;
+        if(Math.random()*2>1)
+          response=createConfirmPickedJobResponse(m);
+        else
+          response=createRejectPickedJobResponse(m);
+        msgResponder.send(m.getJMSReplyTo(), response);
       } catch (JMSException e) {
         log.error("When processing message: {}", m, e);
       }
@@ -160,7 +165,14 @@ public class JobberComp implements ComponentI {
   private Message createConfirmPickedJobResponse(Message rcvMsg) throws JMSException {
     Message response = session.createTextMessage(getComponentId() + " confirm picked job ");
     response.setStringProperty("senderComponentId", getComponentId());
-    //response.setJMSCorrelationID(rcvMsg.getJMSCorrelationID());
+    response.setBooleanProperty("goAhead", true);
+    return response;
+  }
+  
+  private Message createRejectPickedJobResponse(Message rcvMsg) throws JMSException {
+    Message response = session.createTextMessage(getComponentId() + " reject picked job ");
+    response.setStringProperty("senderComponentId", getComponentId());
+    response.setBooleanProperty("goAhead", false);
     return response;
   }
 }

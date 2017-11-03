@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.curator.framework.CuratorFramework;
+import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.data.Stat;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -62,6 +63,9 @@ public class ZkComponentStopper {
         }
         return null;
       }).filter(Objects::nonNull).collect(Collectors.toList());
+    } catch (NoNodeException e) {
+      log.warn("Tree does not exist: {}", appPrefix);
+      return Collections.emptyList();
     } catch (Exception e) {
       log.warn("When getting subdirs of path", e);
       return Collections.emptyList();

@@ -50,7 +50,7 @@ public class AmqServiceComp implements ComponentI {
     config = new AmqServiceCompConfig(configMap);
     String[] brokerUrls = Constants.parseBrokerUrls(config.brokerUrls);
     if (MQService.jmsServiceExists(brokerUrls[0])) {
-      log.error("JMS service already exists at "+brokerUrls[0]);
+      log.error("JMS service already exists at " + brokerUrls[0]);
     } else {
       try {
         broker = MQService.createBrokerService(config.brokerName, brokerUrls);
@@ -65,20 +65,24 @@ public class AmqServiceComp implements ComponentI {
   public void stop() {
     log.info("Stopping component: {}", config.componentId);
     if (broker != null) {
-      while (running)
-        try {
-          if (broker.isStopping()) {
-            log.info("Waiting for ActiveMQ service to stop ...");
+      new Thread(() -> {
+        while (running)
+          try {
+            log.info("Delay stopping ActiveMQ service to allow clients to disconnect first ...");
             Thread.sleep(5000);
-          } else {
-            log.info("Stopping ActiveMQ service");
-            broker.stop();
+            if (broker.isStopping()) {
+              log.info("Waiting for ActiveMQ service to stop ...");
+              Thread.sleep(5000);
+            } else {
+              log.info("Stopping ActiveMQ service");
+              broker.stop();
+            }
+          } catch (Exception e) {
+            log.error("When stopping ActiveMQ service", e);
+          } finally {
+            running = !broker.isStopped();
           }
-        } catch (Exception e) {
-          log.error("When stopping ActiveMQ service", e);
-        } finally {
-          running = !broker.isStopped();
-        }
+      }, "delayedAmqShutdown").start();
     }
   }
 

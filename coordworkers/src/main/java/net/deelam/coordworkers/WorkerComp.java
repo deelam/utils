@@ -61,6 +61,9 @@ public class WorkerComp implements ComponentI {
   private Connection conn;
   private Session session;
 
+  private Topic getJobsTopic;
+  private Topic availJobsTopic;
+
   @Override
   public void start(Properties configMap) {
     config = new SubmitterCompConfig(configMap);
@@ -69,22 +72,25 @@ public class WorkerComp implements ComponentI {
       conn.start();
       session = conn.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
-      MessageProducer msgProducer =
-          MQClient.createGenericMsgResponder(session, config.deliveryMode);
+      getJobsTopic = session.createTopic(config.getJobsTopic);
+      availJobsTopic = session.createTopic(config.availJobsTopic);
 
       Topic jobStateTopic = session.createTopic(config.jobStateTopic);
       Topic jobDoneTopic = session.createTopic(config.jobDoneTopic);
       Topic jobFailedTopic = session.createTopic(config.jobFailedTopic);
+
+      MessageProducer msgProducer =
+          MQClient.createGenericMsgResponder(session, config.deliveryMode);
+
       handleAvailJobsMsg(msgProducer,
           handleConfirmPickQueueMsg(msgProducer, jobStateTopic, jobDoneTopic, jobFailedTopic));
-
-      // TODO: periodically send msg to getJobsTopic?
 
       running = true;
     } catch (JMSException e) {
       log.error("When connecting to JMS service", e);
     }
   }
+
 
   @Override
   public void stop() {
@@ -100,13 +106,13 @@ public class WorkerComp implements ComponentI {
   boolean acceptingJobs = true;
 
   private void handleAvailJobsMsg(MessageProducer msgResponder, Destination confirmedQueue) {
-    MQClient.createTopicConsumer(session, config.availJobsTopic, message -> {
+    MQClient.createConsumerFor(availJobsTopic, session, message -> {
       if (acceptingJobs) {
         if (message instanceof TextMessage) {
           acceptingJobs = false;
           TextMessage txtMessage = (TextMessage) message;
           String currMsg = txtMessage.getText();
-          log.info("Message received: " + currMsg);
+          log.info("Message received: {}", currMsg);
 
           msgResponder.send(message.getJMSReplyTo(), createPickedJobResponse(confirmedQueue));
         } else {
@@ -135,12 +141,17 @@ public class WorkerComp implements ComponentI {
     Queue confirmPickQueue = session.createQueue(config.confirmPickQueue);
     MessageConsumer consumer = session.createConsumer(confirmPickQueue);
     consumer.setMessageListener(m -> {
-      log.info("Got confirmation msg for pickedJob: {}", m);
-      boolean goAhead = true;
+      boolean goAhead = false;
+      try {
+        goAhead = m.getBooleanProperty("goAhead");
+      } catch (JMSException e2) {
+        log.error("When reading message property. Assuming picked job was rejected.", e2);
+      }
+      log.info("Got response for pickedJob: {}", goAhead);
       if (goAhead) {
         // TODO: start JobRunner thread with StatusReporter
         workerThread = new Thread(() -> {
-          Object job="currJob";
+          Object job = "currJob";
           try {
             msgResponder.send(jobStateTopic, createStateMsg(job, 1));
           } catch (JMSException e1) {
@@ -153,7 +164,10 @@ public class WorkerComp implements ComponentI {
             e.printStackTrace();
           }
           try {
-            msgResponder.send(jobDoneTopic, createDoneMsg(job));
+            if (Math.random() * 2 > 1)
+              msgResponder.send(jobDoneTopic, createDoneMsg(job));
+            else
+              msgResponder.send(jobFailedTopic, createFailedMsg(job));
           } catch (JMSException e) {
             e.printStackTrace();
           }
@@ -162,21 +176,39 @@ public class WorkerComp implements ComponentI {
         workerThread.start();
       } else {
         acceptingJobs = true;
+        // TODO: wait a few seconds before asking for jobs
+        try {
+          msgResponder.send(getJobsTopic, createGetJobsMsg(availJobsTopic));
+        } catch (JMSException e1) {
+          e1.printStackTrace();
+        }
+        
       }
     });
     return confirmPickQueue;
   }
 
+  private Message createGetJobsMsg(Topic availJobsTopic) throws JMSException {
+    Message msg = session.createTextMessage(getComponentId() + " get available jobs");
+    msg.setJMSReplyTo(availJobsTopic);
+    return msg;
+  }
+
   private Message createStateMsg(Object job, int i) throws JMSException {
-    Message msg = session.createTextMessage(getComponentId() + " job state: "+job);
-    msg.setStringProperty("stats", getComponentId());
+    Message msg = session.createTextMessage(getComponentId() + " job state: " + job);
+    msg.setIntProperty("stats", i);
     return msg;
   }
 
   private Message createDoneMsg(Object job) throws JMSException {
-    Message msg = session.createTextMessage(getComponentId() + " job done: "+job);
+    Message msg = session.createTextMessage(getComponentId() + " job done: " + job);
     msg.setStringProperty("stats", getComponentId());
     return msg;
   }
 
+  private Message createFailedMsg(Object job) throws JMSException {
+    Message msg = session.createTextMessage(getComponentId() + " job failed: " + job);
+    msg.setStringProperty("stats", getComponentId());
+    return msg;
+  }
 }
