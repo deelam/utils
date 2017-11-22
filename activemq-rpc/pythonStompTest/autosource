@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# This directory created using: virtualenv -p python3 pythonStompTest
+# After activating env, had to install stomp like this:
+#    pip install -i https://pypi.python.org/simple stomp.py
+
+source bin/activate
+
+if ! which stomp; then
+	pip install -r requirements.txt
+fi
+

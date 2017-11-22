@@ -28,6 +28,8 @@ public class Producer {
     for (int i = 0; i < 1000; i++) {
       System.out.println("Creating Message " + i);
       Message message = session.createTextMessage("Hello World! " + i);
+      message.setStringProperty("param1", "value1");
+      message.setStringProperty("param2", "/some/long/path/to/a/file.csv");
       producer.send(message);
     }
   }
