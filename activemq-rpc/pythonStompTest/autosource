@@ -3,6 +3,7 @@
 # This directory created using: virtualenv -p python3 pythonStompTest
 # After activating env, had to install stomp like this:
 #    pip install -i https://pypi.python.org/simple stomp.py
+# pip freeze > requirements.txt
 
 source bin/activate
 
