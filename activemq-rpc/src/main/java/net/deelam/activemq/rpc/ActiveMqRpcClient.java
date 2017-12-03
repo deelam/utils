@@ -1,6 +1,7 @@
 package net.deelam.activemq.rpc;
 
 import java.util.UUID;
+import javax.jms.Connection;
 import javax.jms.JMSException;
 import javax.jms.Session;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +28,7 @@ import net.deelam.activemq.MQClient;
 @Slf4j
 public class ActiveMqRpcClient {
   final String serversBroadcastAddr;
-  private final String brokerURL;
+  private final Connection connection;
   final String myAddress = UUID.randomUUID().toString();
 
   /**
@@ -36,9 +37,9 @@ public class ActiveMqRpcClient {
    * @param clazz
    * @return proxy for server
    */
-  <T> T createRpcClient(String serverAddr, Class<T> iface, boolean withDebugHook) {
+  public <T> T createRpcClient(String serverAddr, Class<T> iface, boolean withDebugHook) {
     try {
-      Session session = MQClient.createRpcSession(brokerURL);
+      Session session = MQClient.createRpcSession(connection);
       ActiveMqRpcUtil rpc = new ActiveMqRpcUtil(session, serverAddr);
       if (withDebugHook)
         rpc.setHook(new ActiveMqRpcUtil.DebugRpcHook());

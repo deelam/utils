@@ -1,7 +1,6 @@
 package net.deelam.activemq;
 
 import javax.jms.Connection;
-import javax.jms.ConnectionFactory;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -9,20 +8,21 @@ import javax.jms.MessageConsumer;
 import javax.jms.MessageProducer;
 import javax.jms.Session;
 import org.apache.activemq.ActiveMQConnectionFactory;
+import com.google.common.base.Preconditions;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public final class MQClient {
 
   public static Connection connect(String brokerURL) throws JMSException {
-    ConnectionFactory factory = new ActiveMQConnectionFactory(brokerURL);
+    Preconditions.checkNotNull(brokerURL);
+    ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory(brokerURL);
+    factory.setTrustAllPackages(true); // Needed for sending ObjectMessages http://activemq.apache.org/objectmessage.html
     Connection connection = factory.createConnection();
     return connection;
   }
 
-  public static Session createRpcSession(String brokerURL) throws JMSException {
-    Connection connection = MQClient.connect(brokerURL);
-    connection.start();
+  public static Session createRpcSession(Connection connection) throws JMSException {
     return connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
   }
 

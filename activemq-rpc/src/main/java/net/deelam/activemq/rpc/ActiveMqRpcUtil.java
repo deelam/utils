@@ -112,7 +112,7 @@ public class ActiveMqRpcUtil {
         (proxy, method, args) -> {
           try {
             String methodId = genMethodId(method);
-            final BytesMessage msg = (method.getParameterTypes().length > 0) ? serde.writeObjects(args) : null;
+            final BytesMessage msg = (method.getParameterTypes().length > 0) ? serde.writeObjects(args) : serde.writeObjects(null);
             final Class<?> returnType = method.getReturnType();
             msg.setStringProperty(HEADER_METHOD_ID, methodId);
             if (returnType == void.class) {
@@ -132,6 +132,8 @@ public class ActiveMqRpcUtil {
               queueMsgProducer.send(msg);
               log.debug("client sent {} with args={}", methodId, Arrays.toString(args));
               return resultF;
+            } else if ("toString".equals(method.getName())) {
+              return this.toString()+"("+iface.getName()+")";
             } else {
               throw new UnsupportedOperationException("Unsupported return type: " + returnType);
             }
@@ -346,12 +348,16 @@ public class ActiveMqRpcUtil {
     public synchronized BytesMessage writeObjects(Object[] objs) throws JMSException {
       BytesMessage msg = session.createBytesMessage();
       try {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        final Output output = new Output(baos);
-        for (int i = 0; i < objs.length; i++)
-          kryo.writeClassAndObject(output, objs[i]);
-        output.flush();
-        msg.writeBytes(baos.toByteArray());
+        if(objs==null || objs.length==0) {
+          msg.writeBytes(new byte[0]);
+        } else {
+          ByteArrayOutputStream baos = new ByteArrayOutputStream();
+          final Output output = new Output(baos);
+          for (int i = 0; i < objs.length; i++)
+            kryo.writeClassAndObject(output, objs[i]);
+          output.flush();
+          msg.writeBytes(baos.toByteArray());
+        }
         return msg;
       } catch (Throwable t) {
         String arrayStr = Arrays.toString(objs);

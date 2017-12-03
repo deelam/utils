@@ -4,12 +4,14 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
-
+import javax.jms.Connection;
+import javax.jms.JMSException;
 import org.apache.activemq.broker.BrokerService;
 import org.junit.*;
 import org.junit.Test;
 
 import lombok.extern.slf4j.Slf4j;
+import net.deelam.activemq.MQClient;
 import net.deelam.activemq.MQService;
 import net.deelam.activemq.rpc.ActiveMqRpcClient;
 import net.deelam.activemq.rpc.ActiveMqRpcServer;
@@ -56,6 +58,8 @@ public class ActiveMqRpcClientTest {
     
     ActiveMqRpcClient client = startClient();
     HdfsSvcI hdfs = client.createRpcClient(serverAddr, HdfsSvcI.class, true); // blocks
+    log.info("hdfs={}", hdfs);
+    hdfs.getBean();
     Boolean boolean1 = hdfs.exists("src").get();
     assertTrue(boolean1);
     log.info("exists=" + boolean1); //blocks
@@ -73,10 +77,10 @@ public class ActiveMqRpcClientTest {
     }).start();
     
     ActiveMqRpcClient client = startClient();
-    HdfsSvcI hdfs = client.createRpcClient(serverAddr, HdfsSvcI.class, true); // blocks
-    Boolean boolean1 = hdfs.exists("src").get();
+    HdfsSvcI hdfs = client.createRpcClient(serverAddr, HdfsSvcI.class, true); 
+    Boolean boolean1 = hdfs.exists("src").get();//blocks
     assertTrue(boolean1);
-    log.info("exists=" + boolean1); //blocks
+    log.info("exists=" + boolean1); 
     
     //client.invalidateAndFindNewServer(HdfsInterface.class);
     Boolean boolean2 = hdfs.exists("src").get();
@@ -86,11 +90,23 @@ public class ActiveMqRpcClientTest {
 
 
   private ActiveMqRpcClient startClient() {
-    return new ActiveMqRpcClient(null, brokerURL); //.start();
+    try {
+      Connection connection = MQClient.connect(brokerURL);
+      connection.start();
+      return new ActiveMqRpcClient(null, connection); //.start();
+    } catch (JMSException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private void startServer() {
-    new ActiveMqRpcServer(brokerURL).start(serverAddr, new RemoteSvc());
+    try {
+      Connection connection = MQClient.connect(brokerURL);
+      new ActiveMqRpcServer(connection).start(serverAddr, new RemoteSvc());
+      connection.start();
+    } catch (JMSException e) {
+      throw new RuntimeException(e);
+    }
   }
 
 }

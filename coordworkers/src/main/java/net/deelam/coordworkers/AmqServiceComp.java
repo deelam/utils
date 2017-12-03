@@ -3,6 +3,7 @@ package net.deelam.coordworkers;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
+import javax.management.RuntimeErrorException;
 import org.apache.activemq.broker.BrokerService;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -51,12 +52,14 @@ public class AmqServiceComp implements ComponentI {
     String[] brokerUrls = Constants.parseBrokerUrls(config.brokerUrls);
     if (MQService.jmsServiceExists(brokerUrls[0])) {
       log.error("JMS service already exists at " + brokerUrls[0]);
+      throw new IllegalStateException("JMS service already exists at " + brokerUrls[0]);
     } else {
       try {
         broker = MQService.createBrokerService(config.brokerName, brokerUrls);
         running = true;
       } catch (Exception e) {
         log.error("When starting ActiveMQ service", e);
+        throw new IllegalStateException("When starting ActiveMQ service", e);
       }
     }
   }
