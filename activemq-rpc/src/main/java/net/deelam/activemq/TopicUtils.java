@@ -26,6 +26,7 @@ import javax.jms.TemporaryQueue;
 import javax.jms.TextMessage;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import net.deelam.activemq.rpc.KryoSerDe;
 
 /**
  * 
@@ -41,10 +42,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class TopicUtils implements Closeable {
 
-  private Session session;
-  private ConsumerCounter subscribersCounter;
-  private Timer responseTimer;
-  private MessageProducer producer;
+  private final Session session;
+  private final ConsumerCounter subscribersCounter;
+  private final Timer responseTimer;
+  private final MessageProducer producer;
 
   @Setter
   private long responseTimeout = 10; // in seconds to wait for all consumers' responses
@@ -94,9 +95,10 @@ public class TopicUtils implements Closeable {
       @Override
       public void run() {
         if (correlId2responses.remove(responseF.getCorrelationID()) != null)
-          if(!responseF.getFuture().isDone())
-            log.info("Removed timed-out CombinedResponse: {}", responseF);
-          else
+          if(!responseF.getFuture().isDone()) {
+            log.info("Removed timed-out CombinedResponse and completing future: {}", responseF);
+            responseF.getFuture().complete(responseF.getResponses());
+          } else
             log.debug("Removed completed CombinedResponse: {}", responseF);
       }
     }, (responseTimeout + 1) * 1000);
@@ -125,7 +127,7 @@ public class TopicUtils implements Closeable {
         if (combinedResponse == null)
           log.error("Unknown correlId={}: {}", correlId, message);
         else if (responseMapper == null)
-          combinedResponse.addResponse((T) getDefaultMessageMapper().apply(message));
+          combinedResponse.addResponse((T) getDefaultMessageMapper(session).apply(message));
         else
           combinedResponse.addResponse(responseMapper.apply(message));
       } catch (Exception e) {
@@ -152,7 +154,8 @@ public class TopicUtils implements Closeable {
     };
   }
 
-  public static Function<Message, Object> getDefaultMessageMapper() {
+  public static Function<Message, Object> getDefaultMessageMapper(Session session) {
+    KryoSerDe serde = new KryoSerDe(session);
     return message -> {
       try {
         log.info("Received: " + message);
@@ -170,10 +173,14 @@ public class TopicUtils implements Closeable {
           // Note: http://activemq.apache.org/objectmessage.html
           return ((ObjectMessage) message).getObject();
         } else if (message instanceof BytesMessage) {
-          BytesMessage bMess = (BytesMessage) message;
-          byte[] body = new byte[(int) bMess.getBodyLength()];
-          bMess.readBytes(body);
-          return body;
+          if(message.getBooleanProperty("skipKryo")) {
+            BytesMessage bMess = (BytesMessage) message;
+            byte[] body = new byte[(int) bMess.getBodyLength()];
+            bMess.readBytes(body);
+            return body;
+          } else {
+            return serde.readObject((BytesMessage) message);
+          }
         } else {
           log.error("Cannot handle message type: {}", message);
         }

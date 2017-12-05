@@ -1,9 +1,9 @@
 package net.deelam.activemq.rpc;
 
+import javax.inject.Inject;
 import javax.jms.Connection;
 import javax.jms.JMSException;
 import javax.jms.Session;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.deelam.activemq.MQClient;
@@ -11,7 +11,7 @@ import net.deelam.activemq.MQClient;
 /**
  * To be used with RpcVerticleClient.
  */
-@RequiredArgsConstructor
+@RequiredArgsConstructor(onConstructor = @__(@Inject) )
 @Slf4j
 public class ActiveMqRpcServer {
   //final String serversBroadcastAddr;

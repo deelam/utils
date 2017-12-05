@@ -21,10 +21,10 @@ public class CombinedResponse<T> {
   List<T> responses=new ArrayList<>();
   String correlationID="combinedResponses-"+nextCorrelId();
   
-  private static int CORREL_ID_COUNTER=0;
+  private static int privateCorrelationIdCounter=0;
   @Synchronized
   static int nextCorrelId() {
-    return ++CORREL_ID_COUNTER;
+    return ++privateCorrelationIdCounter;
   }
 
   public boolean addResponse(T resp) {
