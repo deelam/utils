@@ -27,9 +27,9 @@ public class JobberComp implements ComponentI {
     return config.componentId;
   }
 
-  SubmitterCompConfig config;
+  JobberCompConfig config;
 
-  class SubmitterCompConfig extends AbstractCompConfig {
+  class JobberCompConfig extends AbstractCompConfig {
 
     final String brokerUrl;
     final String submitJobQueue;
@@ -42,7 +42,7 @@ public class JobberComp implements ComponentI {
 
 
     // populate and print remaining unused properties
-    public SubmitterCompConfig(Properties props) {
+    public JobberCompConfig(Properties props) {
       super(props);
       brokerUrl = Constants.getTcpBrokerUrl(useRequiredRefProperty(props, "brokerUrl.ref"));
       submitJobQueue = useRequiredProperty(props, "msgQ.submitJob");
@@ -61,7 +61,7 @@ public class JobberComp implements ComponentI {
 
   @Override
   public void start(Properties configMap) {
-    config = new SubmitterCompConfig(configMap);
+    config = new JobberCompConfig(configMap);
     try {
       conn = MQClient.connect(config.brokerUrl);
       conn.start();
