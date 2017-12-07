@@ -1,0 +1,79 @@
+
+apply plugin: 'maven'
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+//apply plugin: 'io.franzbecker.gradle-lombok'
+
+//apply plugin: 'application'
+//mainClassName = 'hello.HelloWorld'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+group = 'net.deelam'
+version = '0.1.0'
+jar.baseName = 'vertx'
+
+  ext {
+    ver = [
+      vertx: '3.3.3',
+      tinkerpop:'2.6.0'
+    ]
+
+    dep = [
+      commons_io: 'commons-io:commons-io:2.5',
+      xinject: 'javax.inject:javax.inject:1',
+      guice: 'com.google.inject:guice:4.1.0',
+      guava: 'com.google.guava:guava:21.0',
+
+      blueprints: 'com.tinkerpop.blueprints:blueprints-core:'+ver.tinkerpop,
+      blueprints_neo: 'com.tinkerpop.blueprints:blueprints-neo4j-graph:'+ver.tinkerpop,
+      frames: 'com.tinkerpop:frames:'+ver.tinkerpop,
+
+      vertx: 'io.vertx:vertx-core:'+ver.vertx,
+      vertx_unittest: 'io.vertx:vertx-unit:'+ver.vertx,
+      vertx_ignite: 'io.vertx:vertx-ignite:'+ver.vertx,
+
+    ]
+  }
+
+dependencies {
+
+	compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.+'
+//	compileOnly group: 'ch.qos.logback', name: 'logback-classic', version: '1.+'
+	compileOnly  'org.projectlombok:lombok:1.16.18'
+	testCompile "junit:junit:4.12"
+
+  compile dep.xinject
+  compile dep.guice
+  compile dep.guava
+  compile dep.vertx  
+  compile 'com.esotericsoftware:kryo-shaded:4.0.0'
+  //compile 'de.javakaffee:kryo-serializers:0.41'
+  
+  compileOnly dep.vertx_ignite
+  testCompile dep.vertx_ignite
+  
+  compileOnly 'net.deelam:graph:0.1.0'
+  testCompile 'net.deelam:graph:0.1.0'
+//  testCompile project(':apis')
+//  testCompile dep.dataengine_api
+  compileOnly dep.frames
+  testCompile dep.frames
+  
+  testCompile dep.vertx_unittest
+  //testCompile 'com.xored.vertx:vertx-typed-rpc:1.0'
+}
+
+configurations {
+	// so that lombok is available for tests
+    testCompile.extendsFrom compileOnly
+}
+
+
