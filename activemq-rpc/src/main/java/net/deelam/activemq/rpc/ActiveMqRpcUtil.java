@@ -190,35 +190,36 @@ public class ActiveMqRpcUtil {
                   hook.serverReceivesCall(methodId, objects);
                 result = method.invoke(service, objects);
               }
+              
+              if (method.getReturnType().isAssignableFrom(CompletableFuture.class)) {
+                ((CompletableFuture<?>) result).whenComplete((reslt, e) -> {
+                  try{
+                    BytesMessage response;
+                    if (e == null) {
+                      if (hook != null)
+                        hook.serverReplies(methodId, reslt);
+                      response = serde.writeObject(reslt);
+                    } else {
+                      if (hook != null)
+                        hook.serverRepliesThrowable(methodId, e);
+                      response = serde.writeObject(e);
+                      response.setStringProperty(EXCEPTION, e.toString());
+                    }
+                    response.setJMSCorrelationID(bytesMsg.getJMSCorrelationID());
+                    producer.send(bytesMsg.getJMSReplyTo(), response);
+                  }catch(JMSException je){
+                    log.error("",je);
+                  }
+                });
+              }
             } catch (InvocationTargetException ex) {
+              log.warn("When invoking method on server-side of RPC: {}", methodId, ex);
               if (hook != null)
                 hook.serverRepliesThrowable("invoking " + methodId, ex.getCause());
               BytesMessage response = serde.writeObject(ex.getCause());
               response.setStringProperty(EXCEPTION, ex.getCause().toString());
               response.setJMSCorrelationID(bytesMsg.getJMSCorrelationID());
               producer.send(bytesMsg.getJMSReplyTo(), response);
-            }
-            
-            if (method.getReturnType().isAssignableFrom(CompletableFuture.class)) {
-              ((CompletableFuture<?>) result).whenComplete((reslt, e) -> {
-                try{
-                  BytesMessage response;
-                  if (e == null) {
-                    if (hook != null)
-                      hook.serverReplies(methodId, reslt);
-                    response = serde.writeObject(reslt);
-                  } else {
-                    if (hook != null)
-                      hook.serverRepliesThrowable(methodId, e);
-                    response = serde.writeObject(e);
-                    response.setStringProperty(EXCEPTION, e.toString());
-                  }
-                  response.setJMSCorrelationID(bytesMsg.getJMSCorrelationID());
-                  producer.send(bytesMsg.getJMSReplyTo(), response);
-                }catch(JMSException je){
-                  log.error("",je);
-                }
-              });
             }
           }
         }

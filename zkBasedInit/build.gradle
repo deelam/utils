@@ -9,7 +9,8 @@ apply plugin: 'eclipse'
 //mainClassName = 'hello.HelloWorld'
 
 repositories {
-    mavenCentral()
+   mavenLocal()
+   mavenCentral()
 }
 
 sourceCompatibility = 1.8
@@ -22,9 +23,17 @@ jar.baseName = 'zkbasedinit'
 
 
 dependencies {
+	compile 'net.deelam:utils-zero:0.1.0'
 
 	compile group: 'org.apache.curator', name: 'curator-recipes', version: '4.0.0'
 	compile group: 'org.apache.curator', name: 'curator-x-async', version: '4.0.0'
+	
+	// for EmbeddedZookeeper
+	runtime group: 'org.eclipse.jetty', name: 'jetty-server',  version: '9.4.8.v20171121'
+	runtime group: 'org.eclipse.jetty', name: 'jetty-servlet', version: '9.4.8.v20171121'
+	runtime group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.2'
+	runtime group: 'org.codehaus.jackson', name: 'jackson-mapper-asl', version: '1.9.13'
+	
 	
 	//http://curator.apache.org/zk-compatibility.html
 /*	

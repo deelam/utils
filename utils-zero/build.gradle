@@ -1,0 +1,38 @@
+
+apply plugin: 'maven'
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+//apply plugin: 'io.franzbecker.gradle-lombok'
+
+//apply plugin: 'application'
+//mainClassName = 'hello.HelloWorld'
+
+repositories {
+    mavenCentral()
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+//curatorVersion= '4.0.0'
+
+group = 'net.deelam'
+version = '0.1.0'
+jar.baseName = 'utils-zero'
+
+
+dependencies {
+
+	compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.+'
+//	compileOnly group: 'ch.qos.logback', name: 'logback-classic', version: '1.+'
+	compileOnly  'org.projectlombok:lombok:1.16.18'
+	testCompile "junit:junit:4.12"
+
+}
+
+configurations {
+	// so that lombok is available for tests
+    testCompile.extendsFrom compileOnly
+}
+
+
