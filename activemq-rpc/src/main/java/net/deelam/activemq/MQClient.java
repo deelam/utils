@@ -55,7 +55,7 @@ public final class MQClient {
       MsgHandler listener) {
     try {
       MessageConsumer consumer = session.createConsumer(dest);
-      consumer.setMessageListener(msg -> {
+      if(listener!=null) consumer.setMessageListener(msg -> {
         try {
           listener.handle(msg);
         } catch (JMSException e) {
