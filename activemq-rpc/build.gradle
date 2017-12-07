@@ -2,9 +2,6 @@
 apply plugin: 'maven'
 apply plugin: 'java'
 apply plugin: 'eclipse'
-eclipse.project {
-  referencedProjects 'activemq-rpc', 'zkBasedInit'
-}
 
 //apply plugin: 'application'
 //mainClassName = 'hello.HelloWorld'
@@ -19,7 +16,7 @@ targetCompatibility = 1.8
 
 group = 'net.deelam'
 version = '0.1.0'
-jar.baseName = 'coord-workers'
+jar.baseName = 'activemq-rpc'
 
 /// -----------
 
@@ -35,22 +32,17 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 
 artifacts {
     archives sourcesJar
-    archives javadocJar
+    //archives javadocJar
 }
 
 /// -----------
 
 dependencies {
 
-	compile group: 'net.deelam', name: 'zkbasedinit', version: '0.1.0'
-	compile group: 'net.deelam', name: 'activemq-rpc', version: '0.1.0'
-	
-//	compile group: 'org.apache.curator', name: 'curator-x-async', version: '4.0.0'
-	
 	compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.+'
 	compileOnly group: 'ch.qos.logback', name: 'logback-classic', version: '1.+'
 
-//	compile group: 'com.google.inject', name: 'guice', version: '4.1.0'
+	compile group: 'com.google.inject', name: 'guice', version: '4.1.0'
 	
 //	compile group: 'org.apache.commons', name: 'commons-configuration2', version: '2.2'
 //	compile group: 'commons-beanutils', name: 'commons-beanutils', version: '1.9.3'
@@ -58,6 +50,11 @@ dependencies {
 	compileOnly  'org.projectlombok:lombok:1.16.18'
 	testCompile "junit:junit:4.12"
 
+	compile  'com.esotericsoftware:kryo-shaded:4.0.0'
+	compile group: 'org.apache.activemq', name: 'activemq-broker', version: '5.15.2'
+	compile group: 'org.apache.activemq', name: 'activemq-client', version: '5.15.2'
+	compile group: 'org.apache.activemq', name: 'activemq-stomp',  version: '5.15.2'
+	runtime group: 'org.apache.activemq', name: 'activemq-kahadb-store',  version: '5.15.2'
 }
 
 configurations {
