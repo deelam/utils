@@ -1,0 +1,111 @@
+package net.deelam.graph;
+
+import java.util.Date;
+import java.util.LinkedHashSet;
+import java.util.List;
+
+import org.boon.json.JsonFactory;
+import org.boon.json.ObjectMapper;
+
+public class JsonPropertyMergerTest {
+  
+  public static void main(String[] args) throws ClassNotFoundException {
+    GrafRecord gr=new GraphRecordImpl("1");
+    gr.setProperty("recordId", "1");
+    
+    GrafRecord gr2=new GraphRecordImpl("2");
+    gr2.setProperty("recordId", "2");
+    
+    JsonPropertyMerger m = new JsonPropertyMerger();
+    m.mergeProperties(gr, gr2);
+    System.out.println(BpGrafDebug.toString(gr2));
+    
+    gr.setProperty("recordId", "3");
+    m.mergeProperties(gr, gr2);
+    System.out.println(BpGrafDebug.toString(gr2));
+  
+    m.mergeProperties(gr2, gr);
+    System.out.println(BpGrafDebug.toString(gr2));
+    System.out.println(BpGrafDebug.toString(gr));
+    
+    m.mergeProperties(gr2, gr);
+    System.out.println(BpGrafDebug.toString(gr));
+  
+  }
+  
+  @SuppressWarnings({"rawtypes","unchecked"})
+  public static void main1(String[] args) throws ClassNotFoundException {
+    System.out.println(Integer.class.isPrimitive());
+    System.out.println(int.class.isPrimitive());
+    
+    ObjectMapper mapper = JsonFactory.create();
+    //    String jsonArray = "[0,1,2,3,4,5,6,7,8,7]";
+    //    Integer[] intArray = mapper.parser().parseIntArray( jsonArray );
+  
+    {
+      String json = mapper.toJson("Hi");
+      System.out.println(json);
+      System.out.println(mapper.parser().parse(String.class, json).getClass());
+    }
+    {
+      String json = mapper.toJson(Integer.valueOf(1).getClass().getCanonicalName());
+      System.out.println(json);
+      System.out.println(Class.forName(mapper.parser().parseString(json)));
+    }
+    {
+      String json = mapper.toJson(1L);
+      System.out.println(json);
+      System.out.println(mapper.parser().parse(json).getClass());
+    }
+    {
+      LinkedHashSet<Number> valueSet = new LinkedHashSet<>();
+      valueSet.add(1L);
+      valueSet.add(2.0);
+      valueSet.add(2.0f);
+      valueSet.add(1);
+      String intArrJson = mapper.toJson(valueSet);
+      System.out.println(intArrJson);
+      System.out.println(mapper.parser().parse(intArrJson).getClass());
+    }
+  
+    {
+      LinkedHashSet<Object> valueSet = new LinkedHashSet<>();
+      valueSet.add("a");
+      valueSet.add("2");
+      valueSet.add("b");
+      valueSet.add('b');
+      valueSet.add(true);
+      valueSet.add(2234567892345678L);
+      String inJson = mapper.toJson(valueSet);
+      System.out.println(inJson);
+      List list = (List) mapper.parser().parse(inJson);
+      if (!list.contains("c"))
+        list.add("c");
+      if (!list.contains("c"))
+        list.add("d");
+      System.out.println(list);
+      for(Object i:list){
+        System.err.println(i.getClass());
+      }
+    }
+    {
+      LinkedHashSet<Date> valueSet = new LinkedHashSet<>();
+      valueSet.add(new Date());
+      valueSet.add(new Date());
+      String inJson = mapper.toJson(valueSet);
+      System.out.println(inJson);
+      List list = (List) mapper.parser().parse(inJson);
+      System.out.println(list.get(0).getClass());
+    }
+    {
+      LinkedHashSet<Object> valueSet = new LinkedHashSet<>();
+      valueSet.add(new JsonPropertyMerger());
+      String inJson = mapper.toJson(valueSet);
+      System.out.println(inJson);
+      List list = (List) mapper.parser().parse(inJson);
+      System.out.println(list.get(0).getClass());
+    }
+  }
+  
+}
+
