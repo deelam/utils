@@ -12,6 +12,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.commons.configuration2.BaseConfiguration;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.x.async.AsyncCuratorFramework;
@@ -228,6 +229,10 @@ public class ZkConfigPopulator {
 
     compIdList.forEach(compId -> {
       Configuration subconfig = subConfigMap.get(compId);
+      if(subconfig==null) {
+        log.warn("!! No configuration found for {}", compId);
+        subconfig=new BaseConfiguration();
+      }
       try {
         populateConfig(compId, subconfig);
       } catch (Exception ex) {

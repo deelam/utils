@@ -32,8 +32,9 @@ public class GModuleZkComponentStarter extends AbstractModule {
     ZkComponentStarter compStarter = new ZkComponentStarter(cf, startupPath);
     compStarter.setComponentStartedCallback(c -> startedLatch.countDown());
     compStarter.setStarterCompleteCallback(c -> {
-      log.info("StarterCompleteCallback called: {}", c.getComponentId());
-      completedLatch.countDown();});
+      log.info("StarterCompleteCallback called: {}", c);
+      completedLatch.countDown();
+      });
     return compStarter;
   }
 
