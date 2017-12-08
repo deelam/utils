@@ -43,7 +43,7 @@ public class ZkComponentTypeStarter implements ZkComponentStarterI {
   public void startWithCopyOf(String sourceSubpath, String componentPrefix, ComponentI comp)
       throws Exception {
     final String sourcePath = appPrefix + sourceSubpath;
-    log.info("Starting component with copy of sourcePath={} to componentPrefix={}", sourcePath,
+    log.info("Configuring component with copy of sourcePath={} to componentPrefix={}", sourcePath,
         componentPrefix);
     
     // wait for $sourcePath/init
@@ -96,17 +96,18 @@ public class ZkComponentTypeStarter implements ZkComponentStarterI {
     getAsync().create()
         .withOptions(EnumSet.of(CreateOption.createParentsIfNeeded),
             CreateMode.EPHEMERAL_SEQUENTIAL)
-        .forPath(sourcePath + COPIES_SUBPATH + "/" + componentPrefix + "-")
+        .forPath(sourcePath + COPIES_SUBPATH + "/" + componentPrefix + "-", null)
         .thenCompose(actualPath -> {
           componentId = Paths.get(actualPath).getFileName().toString();
           log.info("Created copy znode: {}", actualPath);
-
+          
           // create ephemeral znode $appPrefix/$componentId, which should not already exist
           // if(client.checkExists().forPath(appPrefix + componentId)!=null)
           // throw new java.io.IOException("");
           return getAsync().create().forPath(appPrefix + componentId).thenAcceptAsync(newPath -> {
-            log.info("Created new component at {}", newPath);
+            log.info("TYPESTARTER: Created new component at {}", newPath);
             try {
+              getAsync().setData().forPath(actualPath, newPath.getBytes());
               copyConfAndInit(sourcePath, newPath);
             } catch (Exception e) {
               starterCompleteCallback.accept(comp);

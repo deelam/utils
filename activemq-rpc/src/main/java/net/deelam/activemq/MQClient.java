@@ -20,6 +20,7 @@ public final class MQClient {
     factory.setTrustAllPackages(true); // Needed for sending ObjectMessages http://activemq.apache.org/objectmessage.html
     Connection connection = factory.createConnection();
     connection.start();
+    log.debug("Remember to close connection: {}", connection);
     return connection;
   }
 

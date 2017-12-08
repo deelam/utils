@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.apache.commons.configuration2.Configuration;
@@ -52,7 +53,7 @@ public class ZkComponentStarter implements ZkComponentStarterI {
   /**
    * EPHEMERAL znode used to detect if component is still up
    */
-  static final String STARTED_SUBPATH = "/started";
+  public static final String STARTED_SUBPATH = "/started";
 
   ///
 
@@ -128,7 +129,7 @@ public class ZkComponentStarter implements ZkComponentStarterI {
                   break;
                 case NodeDataChanged:
                   try {
-                    if (component.reinit(getConfig(path))) {
+                    if (component.reinit(getConfig())) {
                       setSharedValues();
                       getAsync().setData().forPath(path + STARTED_SUBPATH);
                     }
@@ -168,7 +169,7 @@ public class ZkComponentStarter implements ZkComponentStarterI {
     try {
       Stat alreadyStarted = client.checkExists().forPath(path + STARTED_SUBPATH);
       if (alreadyStarted == null) {
-        Properties props = getConfig(path);
+        Properties props = getConfig();
         if (component == null)
           component = instantiateComponent(props);
         component.start(props);
@@ -261,16 +262,20 @@ public class ZkComponentStarter implements ZkComponentStarterI {
         });
   }
 
-  private Properties getConfig(String pathPrefix) throws Exception {
-    byte[] confData = client.getData().forPath(pathPrefix + CONF_SUBPATH);
+  private Properties getConfig() throws Exception {
+    return getConfig(client, path, componentId);
+  }
+  public static Properties getConfig(CuratorFramework client, String path, String componentId) throws Exception {
+    byte[] confData = client.getData().forPath(path + CONF_SUBPATH);
     Properties configMap = SerializeUtils.deserializeConfigurationAsProperties(confData);
-    log.info("Got config: {}: {}", pathPrefix, configMap);
     configMap.put(ComponentI.ZK_PATH, path);
     configMap.put(ComponentI.COMPONENT_ID, componentId);
+    configMap.put(GModuleZooKeeper.ZOOKEEPER_CONNECT, System.getProperty(GModuleZooKeeper.ZOOKEEPER_CONNECT));
+    log.info("Got config: {}: {}", path, configMap);
     
     // add values for refPaths
-    if(client.checkExists().forPath(pathPrefix + CONFRESOLVED_SUBPATH)!=null) {
-      byte[] refPathData = client.getData().forPath(pathPrefix + CONFRESOLVED_SUBPATH);
+    if(client.checkExists().forPath(path + CONFRESOLVED_SUBPATH)!=null) {
+      byte[] refPathData = client.getData().forPath(path + CONFRESOLVED_SUBPATH);
       Properties configRefMap = (Properties) SerializeUtils.deserialize(refPathData);
       configMap.putAll(configRefMap);
     }
@@ -309,17 +314,22 @@ public class ZkComponentStarter implements ZkComponentStarterI {
       log.info("Tree after starting {}: {}", compId, ZkConnector.treeToString(cf, startupPath));
     }
 
-    Thread.sleep(1000);
-    log.info("Awaiting components to start: {}",
-        moduleZkComponentStarter.getStartedLatch().getCount());
-    moduleZkComponentStarter.getStartedLatch().await();
+    long notStartedCount = moduleZkComponentStarter.getStartedLatch().getCount();
+    do {
+      log.info("---------- Waiting for components to start: {}", notStartedCount);
+      moduleZkComponentStarter.getStartedLatch().await(1, TimeUnit.SECONDS);
+      notStartedCount = moduleZkComponentStarter.getStartedLatch().getCount();
+    } while (notStartedCount > 0);
 
     log.info("All components started: {}", compIdList);
     log.info("Tree after all components started: {}", ZkConnector.treeToString(cf, startupPath));
-    Thread.sleep(1000);
-    log.info("Awaiting components to end: {}",
-        moduleZkComponentStarter.getCompletedLatch().getCount());
-    moduleZkComponentStarter.getCompletedLatch().await();
+    
+    long compsStillRunning = moduleZkComponentStarter.getCompletedLatch().getCount();
+    do {
+      log.info("Waiting for components to end: {}", compsStillRunning);
+      moduleZkComponentStarter.getCompletedLatch().await(1, TimeUnit.MINUTES);
+      compsStillRunning = moduleZkComponentStarter.getCompletedLatch().getCount();
+    } while (compsStillRunning > 0);
 
     log.info("Tree after components stopped: {}", ZkConnector.treeToString(cf, startupPath));
   }

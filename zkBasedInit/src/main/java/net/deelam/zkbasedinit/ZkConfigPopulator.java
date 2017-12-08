@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -44,6 +45,13 @@ public class ZkConfigPopulator {
   @SuppressWarnings("squid:S00100")
   private AsyncCuratorFramework _async() {
     return AsyncCuratorFramework.wrap(client);
+  }
+  
+  public void close() {
+    if(completeLatch!=null)
+      if(completeLatch.getCount()>0)
+        log.error("Configuration not fully populated!  Was still waiting for required components to start.");
+    log.info("Remember to close client connection to Zookeeper: {}", client);
   }
 
   void populateConfig(String componentId, Configuration configuration) throws Exception {
@@ -194,7 +202,7 @@ public class ZkConfigPopulator {
   }
 
   public static void main(String[] args) throws Exception {
-    String propFile = (args.length > 0) ? args[0] : "startup.props";
+    String propFile = (args.length > 0) ? args[0] : "configs.props";
     Configuration config = ConfigReader.parseFile(propFile);
     log.info("{}\n------", ConfigReader.toStringConfig(config, config.getKeys()));
 
@@ -224,7 +232,7 @@ public class ZkConfigPopulator {
       compIdList = new ArrayList<>(subConfigMap.keySet());
     log.info("componentIds to put in ZK: {}", compIdList);
 
-    CountDownLatch completeLatch = new CountDownLatch(compIdList.size());
+    completeLatch = new CountDownLatch(compIdList.size());
     setCompleteCallback(p -> completeLatch.countDown());
 
     compIdList.forEach(compId -> {
@@ -240,9 +248,18 @@ public class ZkConfigPopulator {
       }
       triggerInitializationWhenReady(compId, subconfig);
     });
-    log.info("Waiting for required components to start before initiating other components: {}",
-        completeLatch.getCount());
-    completeLatch.await();
+    
+    long compsStillRunning = completeLatch.getCount();
+    do {
+      log.info("Waiting for required components to start before initiating other components: {}", compsStillRunning);
+      completeLatch.await(secondsToWaitForRequiredComps, TimeUnit.SECONDS);
+      compsStillRunning = completeLatch.getCount();
+    } while (compsStillRunning > 0);
+    
     log.info("ZKCONFIG: Populated.");
   }
+  
+  CountDownLatch completeLatch;
+  @Setter
+  int secondsToWaitForRequiredComps=2;
 }

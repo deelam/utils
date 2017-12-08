@@ -72,13 +72,14 @@ public class AmqServiceComp implements ComponentI {
         while (running)
           try {
             log.info("Delay stopping ActiveMQ service to allow clients to disconnect first ...");
-            Thread.sleep(5000);
+            Thread.sleep(3000);
             if (broker.isStopping()) {
-              log.info("Waiting for ActiveMQ service to stop ...");
-              Thread.sleep(5000);
+              log.info("Waiting for ActiveMQ service to stop ... currConnections={}", broker.getCurrentConnections());
+              Thread.sleep(2000);
             } else {
               log.info("Stopping ActiveMQ service");
               broker.stop();
+              Thread.sleep(1000);
             }
           } catch (Exception e) {
             log.error("When stopping ActiveMQ service", e);

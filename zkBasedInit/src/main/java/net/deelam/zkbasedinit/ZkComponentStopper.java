@@ -77,31 +77,42 @@ public class ZkComponentStopper {
     ZkConnector.deletePath(client, appPrefix);
   }
 
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) {
     String propFile = (args.length > 0) ? args[0] : "startup.props";
-    Configuration config = ConfigReader.parseFile(propFile);
-    log.info("{}\n------", ConfigReader.toStringConfig(config, config.getKeys()));
+    try {
+      Configuration config = ConfigReader.parseFile(propFile);
+      log.info("{}\n------", ConfigReader.toStringConfig(config, config.getKeys()));
 
-    Injector injector = Guice.createInjector(new GModuleZooKeeper(config));
-    ZkComponentStopper stopper = injector.getInstance(ZkComponentStopper.class);
-    log.info("Tree before stopping: {}", ZkConnector.treeToString(stopper.client, stopper.appPrefix));
+      Injector injector = Guice.createInjector(new GModuleZooKeeper(config));
+      ZkComponentStopper stopper = injector.getInstance(ZkComponentStopper.class);
+      log.info("Tree before stopping: {}", ZkConnector.treeToString(stopper.client, stopper.appPrefix));
 
-    List<String> compIds = stopper.listRunningComponents();
-    log.info("compIds to stop: {}", compIds);
-    compIds.forEach(compId -> {
+      List<String> compIds = stopper.listRunningComponents();
+      log.info("compIds to stop: {}", compIds);
+      compIds.forEach(compId -> {
+        try {
+          stopper.stop(compId);
+        } catch (Exception e) {
+          log.error("When stopping compId="+compId, e);
+        }
+      });
+      
       try {
-        stopper.stop(compId);
-      } catch (Exception e) {
-        log.error("When stopping compId="+compId, e);
+        Thread.sleep(2000); // allow time for modifications to take effect
+        log.info("Tree after stopping all components: {}", ZkConnector.treeToString(stopper.client, stopper.appPrefix));
+      } catch (InterruptedException e) {
+        e.printStackTrace();
       }
-    });
-    
-    Thread.sleep(2000); // allow time for modifications to take effect
-    log.info("Tree after stopping: {}", ZkConnector.treeToString(stopper.client, stopper.appPrefix));
 
-    boolean cleanUp=true; //args.length>0 && "clean".equals(args[0]);
-    if (cleanUp) {
-      stopper.cleanup();
+      boolean cleanUp=true; //args.length>0 && "clean".equals(args[0]);
+      if (cleanUp) {
+        stopper.cleanup();
+      }
+      
+      CuratorFramework cf = injector.getInstance(CuratorFramework.class);
+      cf.close();
+    } catch (Exception e) {
+      throw new IllegalStateException("While stopping components", e);
     }
   }
 

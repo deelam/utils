@@ -20,7 +20,10 @@ public class EmbeddedZookeeper {
     Properties props = getDefaultProperties();
 
 
-    new EmbeddedZookeeper(props).runServer();
+    EmbeddedZookeeper zk = new EmbeddedZookeeper(props);
+    Thread t = zk.startAsThread("myEmbeddedZk");
+    Thread.sleep(10000);
+    zk.stop();
   }
 
   public static Properties getDefaultProperties() {
@@ -73,24 +76,27 @@ public class EmbeddedZookeeper {
    * @throws IOException
    * @throws AdminServerException
    */
-  public synchronized void runServer() throws IOException, AdminServerException {
+  public void runServer() throws IOException, AdminServerException {
+    zkThread=Thread.currentThread();
     zooKeeperServer.runFromConfig(configuration);
   }
 
+  Thread zkThread;
   public Thread startAsThread(String threadName) throws IOException, ConfigException {
-    Thread t = new Thread(() -> {
+    zkThread = new Thread(() -> {
       try {
         runServer();
       } catch (Exception e) {
         log.error("When starting ZooKeeper", e);
       }
     }, threadName);
-    t.start();
-    return t;
+    zkThread.start();
+    return zkThread;
   }
 
-  public synchronized void stop() {
-    // https://issues.apache.org/jira/browse/ZOOKEEPER-1873
+  public void stop() {
+    if(zkThread!=null)
+      zkThread.interrupt();
     try {
       Method shutdown = ZooKeeperServerMain.class.getDeclaredMethod("shutdown");
       shutdown.setAccessible(true);

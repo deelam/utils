@@ -10,8 +10,10 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.name.Names;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @RequiredArgsConstructor
+@Slf4j
 public class GModuleZooKeeper extends AbstractModule {
 
   public static final String ZOOKEEPER_CONNECT = "ZOOKEEPER.CONNECT";
@@ -29,6 +31,8 @@ public class GModuleZooKeeper extends AbstractModule {
 //        final String zkIP = System.getProperty("ZOOKEEPER.IP", "127.0.0.1");
 //        final String zkPort = System.getProperty("ZOOKEEPER.PORT", "2181");
         zookeeperConnectionString = config.getString(ZOOKEEPER_CONNECT, "127.0.0.1:2181");
+        log.info("System.setProperty: {}={}", ZOOKEEPER_CONNECT, zookeeperConnectionString);
+        System.setProperty(ZOOKEEPER_CONNECT, zookeeperConnectionString);
       }
       // bind(String.class).annotatedWith(Names.named(ZOOKEEPER_CONNECT))
       // .toInstance(zookeeperConnectionString);

@@ -6,6 +6,8 @@ import org.apache.curator.RetryPolicy;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.ExponentialBackoffRetry;
+import org.apache.curator.x.async.AsyncCuratorFramework;
+import org.apache.curator.x.async.WatchMode;
 import org.apache.zookeeper.ZKUtil;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -58,4 +60,27 @@ public class ZkConnector {
     log.info("Tree: {}", ZkConnector.treeToString(cf, Paths.get(startupPath).getParent().toString()));
 
   }
+  
+  public static void watchForNodeChange(CuratorFramework client, String watchedPath, ZNodeListener listener) {
+    AsyncCuratorFramework.wrap(client).with(WatchMode.successOnly).watched().checkExists()
+        .forPath(watchedPath).event() //
+        .thenAcceptAsync( // acceptAsync so as not to block main EventThread
+            evt -> {
+              switch (evt.getType()) {
+                case NodeCreated:
+                  listener.nodeCreated(evt.getPath());
+                  break;
+                case NodeDataChanged:
+                  listener.nodeDataChanged(evt.getPath());
+                  break;
+                case NodeDeleted:
+                  listener.nodeDeleted(evt.getPath());
+                  break;
+                default:
+                  listener.otherEvent(evt);
+                  break;
+              }
+            });
+  }
+
 }
