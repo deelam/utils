@@ -103,15 +103,14 @@ public class ZkComponentStarter implements ZkComponentStarterI {
   }
 
   @Setter
-  private Consumer<ComponentI> componentStartedCallback =
-      comp -> log.info("Component started: {}", comp);
+  private Consumer<ComponentI> componentStartedCallback = comp -> {};
 
   /**
    * Starter is complete when component could not be started or when component stopped. At this
    * point, the Starter stops watching znodes.
    */
   @Setter
-  private Consumer<ComponentI> starterCompleteCallback = comp -> log.info("Starter done: {}", comp);
+  private Consumer<ComponentI> starterCompleteCallback = comp -> {};
 
   private boolean initNodeDeleted;
 
@@ -144,6 +143,7 @@ public class ZkComponentStarter implements ZkComponentStarterI {
                     stopComponent();
                   } else {
                     log.warn("INIT_SUBPATH deleted but component is not running: {}", path);
+                    log.info("COMPSTARTER: Starter done for comp={}", component);
                     starterCompleteCallback.accept(component);
                   }
                   break;
@@ -158,8 +158,10 @@ public class ZkComponentStarter implements ZkComponentStarterI {
   private void startAndWatchOtherwiseQuit() {
     if (startComponent())
       asyncWatchForInitPathEvent();
-    else
+    else {
+      log.info("COMPSTARTER: Starter done for comp={}", component);
       starterCompleteCallback.accept(component);
+    }
   }
 
   public boolean startComponent() {
@@ -172,6 +174,7 @@ public class ZkComponentStarter implements ZkComponentStarterI {
         component.start(props);
         setSharedValues();
         client.create().withMode(CreateMode.EPHEMERAL).forPath(path + STARTED_SUBPATH);
+        log.info("COMPSTARTER: Component started: {}", component);
         componentStartedCallback.accept(component);
         asyncWatchForStartPathEvent();
         return true;
@@ -215,7 +218,7 @@ public class ZkComponentStarter implements ZkComponentStarterI {
       throw new IllegalArgumentException(
           "Since component=null, must provide 'classname' property for componentId=" + componentId);
     } else {
-      log.info("Creating instance of component: {}", className);
+      log.info("COMPSTARTER: Creating instance of component: {}", className);
       Class<?> clazz = Class.forName(className);
       Constructor<?> ctor = clazz.getConstructor();
       return (ComponentI) ctor.newInstance();
@@ -229,11 +232,12 @@ public class ZkComponentStarter implements ZkComponentStarterI {
     } catch (Exception e) {
       log.error("Could not delete path=" + path, e);
     }
+    log.info("COMPSTARTER: Starter done for comp={}", component);
     starterCompleteCallback.accept(component);
   }
 
   private void asyncWatchForStartPathEvent() {
-    log.info("asyncWatchForStartPathEvent: {}", path);
+    log.info("wait for changes to StartPath={}", path);
     getAsync().with(WatchMode.successOnly).watched().checkExists().forPath(path + STARTED_SUBPATH)
         .event().thenAcceptAsync(evt -> {
           switch (evt.getType()) {
@@ -244,6 +248,7 @@ public class ZkComponentStarter implements ZkComponentStarterI {
                 if (component.isRunning()) {
                   stopComponent();
                 } else {
+                  log.info("COMPSTARTER: Starter done for comp={}", component);
                   starterCompleteCallback.accept(component);
                 }
               }

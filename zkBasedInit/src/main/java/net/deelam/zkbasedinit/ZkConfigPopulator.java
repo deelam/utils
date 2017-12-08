@@ -47,7 +47,7 @@ public class ZkConfigPopulator {
 
   void populateConfig(String componentId, Configuration configuration) throws Exception {
     String confPath = appPrefix + componentId + CONF_SUBPATH;
-    log.info("populateConfig: {}", confPath);
+    log.info("ZKCONFIG: populateConfig: {}", confPath);
 
     if (client.checkExists().forPath(confPath) != null) {
       log.warn("When populating config for {}", componentId, new IOException("Path already exists: " + confPath));
@@ -59,14 +59,14 @@ public class ZkConfigPopulator {
   }
 
   void triggerInitializationWhenReady(String componentId, Configuration configuration) {
-    log.info("triggerInitializationWhenReady: {}", componentId);
+    log.info("ZKCONFIG: triggerInitializationWhenReady: {}", componentId);
     List<String> remainingReqPaths = getRemainingReqPathsFor(configuration);
     if (remainingReqPaths.isEmpty()) {
       triggerComponentInitialization(componentId);
     } else {
       watchForRequiredPaths(remainingReqPaths, c -> {
         if (getRemainingReqPathsFor(configuration).isEmpty()) {
-          log.info("requiredComponents satisfied for {}", componentId);
+          log.info("ZKCONFIG: requiredComponents satisfied for {}", componentId);
           triggerComponentInitialization(componentId);
         }
       });
@@ -238,6 +238,6 @@ public class ZkConfigPopulator {
     log.info("Waiting for required components to start before initiating other components: {}",
         completeLatch.getCount());
     completeLatch.await();
-    log.info("Configs populated");
+    log.info("ZKCONFIG: Populated.");
   }
 }
