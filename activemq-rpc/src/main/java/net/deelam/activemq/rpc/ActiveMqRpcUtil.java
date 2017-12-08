@@ -9,7 +9,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-
+import java.util.concurrent.ConcurrentHashMap;
 import javax.jms.BytesMessage;
 import javax.jms.DeliveryMode;
 import javax.jms.Destination;
@@ -22,7 +22,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.Synchronized;
 import lombok.extern.slf4j.Slf4j;
-import net.deelam.activemq.CombinedResponse;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -30,7 +29,7 @@ public class ActiveMqRpcUtil {
   final Session session;
   final String address;
   int deliveryMode = DeliveryMode.NON_PERSISTENT;
-  final Map<String, CompletableFuture<Object>> returnObjs = new HashMap<>();
+  final Map<String, CompletableFuture<Object>> returnObjs = new ConcurrentHashMap<>();
 
   @Setter
   RpcHook hook;
@@ -70,7 +69,7 @@ public class ActiveMqRpcUtil {
         String corrId = msg.getJMSCorrelationID();
         checkNotNull(corrId);
         CompletableFuture<Object> resultF = returnObjs.get(corrId);
-        checkNotNull(resultF, corrId+" returnObjs="+returnObjs);
+        checkNotNull(resultF, corrId/*+" returnObjs="+returnObjs*/);
         log.debug("Got correlId={} result={}" ,corrId, resultF);
 
         if (msg instanceof BytesMessage) {
@@ -101,7 +100,7 @@ public class ActiveMqRpcUtil {
         if(returnObjs.remove(corrId)!=null)
           log.debug("Removed correlId={}" ,corrId);
       } catch (Exception e) {
-        log.error("When reading response msg from service:", e);
+        log.error("When reading response msg from service: {}", msg, e);
       }
 
     });

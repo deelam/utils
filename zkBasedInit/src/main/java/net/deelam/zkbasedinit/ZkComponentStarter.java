@@ -162,7 +162,7 @@ public class ZkComponentStarter implements ZkComponentStarterI {
       starterCompleteCallback.accept(component);
   }
 
-  private boolean startComponent() {
+  public boolean startComponent() {
     try {
       Stat alreadyStarted = client.checkExists().forPath(path + STARTED_SUBPATH);
       if (alreadyStarted == null) {
@@ -281,8 +281,13 @@ public class ZkComponentStarter implements ZkComponentStarterI {
         config.getString("componentIds", "jc1, jobStatus, amq, workerType, jobberA"));
     List<String> compIdList =
         Arrays.stream(cIds.split(",")).map(String::trim).collect(Collectors.toList());
-    log.info("componentIds to start: {}", compIdList);
 
+    go(config, compIdList);
+  }
+
+  public static void go(Configuration config, List<String> compIdList)
+      throws Exception {
+    log.info("componentIds to start: {}", compIdList);
     GModuleZkComponentStarter moduleZkComponentStarter =
         new GModuleZkComponentStarter(compIdList.size());
     Injector injector = Guice.createInjector( //
@@ -307,14 +312,14 @@ public class ZkComponentStarter implements ZkComponentStarterI {
     log.info("All components started: {}", compIdList);
     log.info("Tree after all components started: {}", ZkConnector.treeToString(cf, startupPath));
     Thread.sleep(1000);
-    log.info("Awaiting components to finish: {}",
+    log.info("Awaiting components to end: {}",
         moduleZkComponentStarter.getCompletedLatch().getCount());
     moduleZkComponentStarter.getCompletedLatch().await();
 
-    log.info("Tree after stopped: {}", ZkConnector.treeToString(cf, startupPath));
+    log.info("Tree after components stopped: {}", ZkConnector.treeToString(cf, startupPath));
   }
 
-  private static void startComponent(Injector injector, String compId) throws Exception {
+  public static void startComponent(Injector injector, String compId) throws Exception {
     ComponentI aComp = null;
     if (compId.endsWith("Type")) {
       ZkComponentTypeStarter compStarter = injector.getInstance(ZkComponentTypeStarter.class);

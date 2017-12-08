@@ -36,7 +36,7 @@ public class ZkConnector {
     }
   }
 
-  static void deletePath(CuratorFramework cf, String path) throws Exception {
+  public static void deletePath(CuratorFramework cf, String path) throws Exception {
     String appPrefixWithoutFinalSlash = Paths.get(path).toString();
     if (cf.checkExists().forPath(appPrefixWithoutFinalSlash) != null) {
       log.info("delete: {}", appPrefixWithoutFinalSlash);

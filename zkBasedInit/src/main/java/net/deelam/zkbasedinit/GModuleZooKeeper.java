@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class GModuleZooKeeper extends AbstractModule {
 
-  private static final String ZOOKEEPER_CONNECT = "ZOOKEEPER.CONNECT";
+  public static final String ZOOKEEPER_CONNECT = "ZOOKEEPER.CONNECT";
 
   final Configuration configuration;
 

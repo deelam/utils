@@ -44,7 +44,11 @@ public class ConfigReader {
 
   public static Set<String> getChildrenOfRoot(Configuration config) {
     Set<String> topChildren = new HashSet<>();
-    config.getKeys().forEachRemaining(k -> topChildren.add(k.substring(0, k.indexOf('.'))));
+    config.getKeys().forEachRemaining(k -> {
+      int indexOfDot = k.indexOf('.');
+      if(indexOfDot>0)
+        topChildren.add(k.substring(0, indexOfDot));
+    });
     return topChildren;
   }
 
@@ -111,7 +115,7 @@ public class ConfigReader {
     return w.toString();
   }
 
-  static Configuration parseFile(String propFilename) throws ConfigurationException {
+  public static Configuration parseFile(String propFilename) throws ConfigurationException {
     Configurations configs = new Configurations();
     return configs.properties(new File(propFilename));
   }

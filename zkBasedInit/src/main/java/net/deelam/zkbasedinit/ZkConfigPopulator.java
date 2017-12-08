@@ -32,7 +32,9 @@ public class ZkConfigPopulator {
   static final String CONF_SUBPATH = "/conf";
   static final String CONFRESOLVED_SUBPATH = "/conf/resolved";
 
+  @Getter
   final CuratorFramework client;
+  @Getter
   final String appPrefix;
 
   @Getter(lazy = true, value = AccessLevel.PRIVATE)
@@ -212,7 +214,7 @@ public class ZkConfigPopulator {
     }
   }
 
-  private void populateConfigurations(Configuration config, List<String> compIdList)
+  public void populateConfigurations(Configuration config, List<String> compIdList)
       throws InterruptedException {
     Map<String, Configuration> subConfigMap = ConfigReader.extractSubconfigMap(config);
     log.info("componentIds in configs: {}", subConfigMap.keySet());
