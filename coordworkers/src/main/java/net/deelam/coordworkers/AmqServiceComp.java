@@ -3,7 +3,6 @@ package net.deelam.coordworkers;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
-import javax.management.RuntimeErrorException;
 import org.apache.activemq.broker.BrokerService;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -28,12 +27,15 @@ public class AmqServiceComp implements ComponentI {
 
     final String brokerName;
     final String brokerUrls;
+    final String tcpBrokerUrl;
 
     // populate and print remaining unused properties
     public AmqServiceCompConfig(Properties props) {
       super(props);
       brokerName = useProperty(props, "brokerName", "myAmqBroker");
       brokerUrls = useRequiredProperty(props, "brokerUrl");
+      tcpBrokerUrl = Constants.getTcpBrokerUrl(brokerUrls);
+
       checkRemainingProps(props);
     }
   }
@@ -42,6 +44,7 @@ public class AmqServiceComp implements ComponentI {
   public Map<String, Object> getSharedValuesMap() {
     Map<String, Object> map = new HashMap<>();
     map.put("connectionUrl", config.brokerUrls);
+    map.put("connectionTcpUrl", config.tcpBrokerUrl);
     log.info("Sharing values to zookeeper: {}", map);
     return map;
   }
@@ -50,9 +53,13 @@ public class AmqServiceComp implements ComponentI {
   public void start(Properties configMap) {
     config = new AmqServiceCompConfig(configMap);
     String[] brokerUrls = Constants.parseBrokerUrls(config.brokerUrls);
-    if (MQService.jmsServiceExists(brokerUrls[0])) {
-      log.error("JMS service already exists at " + brokerUrls[0]);
-      throw new IllegalStateException("JMS service already exists at " + brokerUrls[0]);
+    
+    log.info("System.setProperty: {}={}", Constants.BROKER_URL, config.tcpBrokerUrl);
+    System.setProperty(Constants.BROKER_URL, config.tcpBrokerUrl);
+
+    if (MQService.jmsServiceExists(config.tcpBrokerUrl)) {
+      log.error("JMS service already exists at " + config.tcpBrokerUrl);
+      throw new IllegalStateException("JMS service already exists at " + config.tcpBrokerUrl);
     } else {
       try {
         broker = MQService.createBrokerService(config.brokerName, brokerUrls);
@@ -72,14 +79,14 @@ public class AmqServiceComp implements ComponentI {
         while (running)
           try {
             log.info("Delay stopping ActiveMQ service to allow clients to disconnect first ...");
-            Thread.sleep(3000);
+            Thread.sleep(5000);
             if (broker.isStopping()) {
               log.info("Waiting for ActiveMQ service to stop ... currConnections={}", broker.getCurrentConnections());
               Thread.sleep(2000);
             } else {
               log.info("Stopping ActiveMQ service");
               broker.stop();
-              Thread.sleep(1000);
+              Thread.sleep(3000);
             }
           } catch (Exception e) {
             log.error("When stopping ActiveMQ service", e);

@@ -292,16 +292,18 @@ public class ZkComponentStarter implements ZkComponentStarterI {
     List<String> compIdList =
         Arrays.stream(cIds.split(",")).map(String::trim).collect(Collectors.toList());
 
-    go(config, compIdList);
+    String zkConnectionString=config.getString(Constants.ZOOKEEPER_CONNECT);
+    String zkStartupPathHome=config.getString(Constants.ZOOKEEPER_STARTUPPATH);
+    go(zkConnectionString, zkStartupPathHome, compIdList);
   }
 
-  public static void go(Configuration config, List<String> compIdList)
+  public static void go(String zkConnectionString, String zkStartupPathHome, List<String> compIdList)
       throws Exception {
     log.info("componentIds to start: {}", compIdList);
     GModuleZkComponentStarter moduleZkComponentStarter =
         new GModuleZkComponentStarter(compIdList.size());
     Injector injector = Guice.createInjector( //
-        new GModuleZooKeeper(config), //
+        new GModuleZooKeeper(zkConnectionString, zkStartupPathHome), //
         moduleZkComponentStarter);
 
     CuratorFramework cf = injector.getInstance(CuratorFramework.class);

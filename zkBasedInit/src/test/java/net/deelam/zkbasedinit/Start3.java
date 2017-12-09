@@ -32,10 +32,9 @@ public class Start3 {
         Arrays.stream(cIds.split(",")).map(c -> c.trim()).collect(Collectors.toList());
     log.info("componentIds to start: {}", compIdList);
 
-    System.setProperty(Constants.ZOOKEEPER_STARTUPPATH, "/test/start3/startup");
     GModuleZkComponentStarter moduleZkComponentStarter = new GModuleZkComponentStarter(compIdList.size());
     Injector injector = Guice.createInjector( //
-        new GModuleZooKeeper(null), //
+        new GModuleZooKeeper(null, "/test/start3/startup"), //
         moduleZkComponentStarter);
     CuratorFramework cf = injector.getInstance(CuratorFramework.class);
 

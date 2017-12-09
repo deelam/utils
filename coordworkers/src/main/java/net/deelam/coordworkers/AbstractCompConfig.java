@@ -2,20 +2,22 @@ package net.deelam.coordworkers;
 
 import java.util.Properties;
 import lombok.Getter;
-import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
+import net.deelam.zkbasedinit.ComponentConfigI;
 import net.deelam.zkbasedinit.ComponentI;
 
 @Slf4j
-@Accessors(fluent = true)
 @Getter
-public class AbstractCompConfig {
+public class AbstractCompConfig implements ComponentConfigI {
 
+  private static final String ZOOKEEPER_CONNECT = "ZOOKEEPER.CONNECT";
   final String componentId;
+  final String zookeeperConnectString;
 
   // populate and print remaining unused properties
   public AbstractCompConfig(Properties props) {
     componentId = useRequiredProperty(props, ComponentI.COMPONENT_ID);
+    zookeeperConnectString = useProperty(props, ZOOKEEPER_CONNECT, null);
     log.debug("Properties for component '{}': {}", componentId, props);
   }
 
@@ -51,6 +53,7 @@ public class AbstractCompConfig {
 
   public void checkRemainingProps(Properties props) {
     props.remove("CONFIG_ID");
+    props.remove(ZOOKEEPER_CONNECT);
     props.remove(ComponentI.ZK_PATH);
     props.remove("classname");
     props.remove("include");

@@ -13,7 +13,9 @@ public final class Constants {
   }
 
   public static String getTcpBrokerUrl(String brokerUrls) {
-    return Arrays.stream(brokerUrls.split(",")).map(String::trim).filter(s -> s.startsWith("tcp:"))
+    return Arrays.stream(brokerUrls.split(",")).map(String::trim).filter(s -> s.toLowerCase().startsWith("tcp:"))
         .findFirst().get();
+    //    throw new IllegalArgumentException("Could not identify URL starting with 'tcp://'");
+
   }
 }

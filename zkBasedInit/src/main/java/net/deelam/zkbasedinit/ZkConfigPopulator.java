@@ -15,6 +15,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.configuration2.BaseConfiguration;
 import org.apache.commons.configuration2.Configuration;
+import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.x.async.AsyncCuratorFramework;
 import org.apache.curator.x.async.WatchMode;
@@ -206,23 +207,31 @@ public class ZkConfigPopulator {
     Configuration config = ConfigReader.parseFile(propFile);
     log.info("{}\n------", ConfigReader.toStringConfig(config, config.getKeys()));
 
-    String cIds = System.getProperty("componentIds", config.getString("componentIds", ""));
-    List<String> compIdList =
-        Arrays.stream(cIds.split(",")).map(String::trim).collect(Collectors.toList());
-    log.info("componentIds for configuration: {}", compIdList);
-
-    Injector injector = Guice.createInjector(new GModuleZooKeeper(config));
+    String zkConnectionString=config.getString(Constants.ZOOKEEPER_CONNECT);
+    String zkStartupPathHome=config.getString(Constants.ZOOKEEPER_STARTUPPATH);
+    Injector injector = Guice.createInjector(new GModuleZooKeeper(zkConnectionString, zkStartupPathHome));
     ZkConfigPopulator cp = injector.getInstance(ZkConfigPopulator.class);
 
     boolean cleanUpOnly = Arrays.asList(args).contains("clean");
     if (cleanUpOnly) {
       cp.cleanup();
     } else {
-      cp.populateConfigurations(config, compIdList);
+      cp.populateConfigurations(propFile);
       log.info("Tree after config: {}", ZkConnector.treeToString(cp.client, cp.appPrefix));
     }
   }
 
+  private static final String COMPONENT_IDS = "componentIds";
+  public List<String> populateConfigurations(String propFile)
+      throws InterruptedException, ConfigurationException {
+    Configuration config = ConfigReader.parseFile(propFile);
+    String componentIds = System.getProperty(COMPONENT_IDS, config.getString(COMPONENT_IDS, ""));
+    List<String> compIdList =
+        Arrays.stream(componentIds.split(",")).map(String::trim).collect(Collectors.toList());
+    log.info("componentIds for configuration: {}", compIdList);
+    populateConfigurations(config, compIdList);
+    return compIdList;
+  }
   public void populateConfigurations(Configuration config, List<String> compIdList)
       throws InterruptedException {
     Map<String, Configuration> subConfigMap = ConfigReader.extractSubconfigMap(config);

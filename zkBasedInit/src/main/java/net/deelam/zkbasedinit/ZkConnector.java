@@ -53,7 +53,9 @@ public class ZkConnector {
     Configuration config = ConfigReader.parseFile(propFile);
     log.info("{}\n------", ConfigReader.toStringConfig(config, config.getKeys()));
     
-    Injector injector = Guice.createInjector(new GModuleZooKeeper(config));
+    String zkConnectionString=config.getString(Constants.ZOOKEEPER_CONNECT);
+    String zkStartupPathHome=config.getString(Constants.ZOOKEEPER_STARTUPPATH);
+    Injector injector = Guice.createInjector(new GModuleZooKeeper(zkConnectionString, zkStartupPathHome));
     CuratorFramework cf = injector.getInstance(CuratorFramework.class);
     String startupPath =
         injector.getInstance(Key.get(String.class, Names.named(Constants.ZOOKEEPER_STARTUPPATH)));
