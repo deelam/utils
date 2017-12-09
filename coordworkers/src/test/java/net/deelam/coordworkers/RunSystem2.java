@@ -11,7 +11,7 @@ import org.apache.curator.framework.recipes.cache.PathChildrenCache;
 import org.apache.curator.framework.recipes.cache.PathChildrenCache.StartMode;
 import lombok.extern.slf4j.Slf4j;
 import net.deelam.zkbasedinit.ConfigReader;
-import net.deelam.zkbasedinit.GModuleZooKeeper;
+import net.deelam.zkbasedinit.ConstantsZk;
 import net.deelam.zkbasedinit.ZNodeListener;
 import net.deelam.zkbasedinit.ZkComponentStarter;
 import net.deelam.zkbasedinit.ZkComponentStopper;
@@ -65,7 +65,7 @@ public class RunSystem2 {
       new Thread(() -> {
         try {
           Configuration config = ConfigReader.parseFile("startup.props");
-          String zookeeperConnectionString=config.getString(GModuleZooKeeper.ZOOKEEPER_CONNECT, "127.0.0.1:2181");
+          String zookeeperConnectionString=config.getString(ConstantsZk.ZOOKEEPER_CONNECT, "127.0.0.1:2181");
           String prefix=config.getString("ZOOKEEPER.STARTUPPATH", "/test/coordworkers/startup/");
           CuratorFramework client = ZkConnector.connectToCluster(zookeeperConnectionString);
           String path=prefix+"workerType/copies";

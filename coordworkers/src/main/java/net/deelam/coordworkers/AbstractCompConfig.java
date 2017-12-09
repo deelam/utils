@@ -5,12 +5,13 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.deelam.zkbasedinit.ComponentConfigI;
 import net.deelam.zkbasedinit.ComponentI;
+import net.deelam.zkbasedinit.ConstantsZk;
 
 @Slf4j
 @Getter
 public class AbstractCompConfig implements ComponentConfigI {
 
-  private static final String ZOOKEEPER_CONNECT = "ZOOKEEPER.CONNECT";
+  private static final String ZOOKEEPER_CONNECT = ConstantsZk.ZOOKEEPER_CONNECT;
   final String componentId;
   final String zookeeperConnectString;
 

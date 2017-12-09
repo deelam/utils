@@ -11,6 +11,7 @@ import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.data.Stat;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -25,6 +26,7 @@ public class ZkComponentStopper {
   static final String INIT_SUBPATH = ZkComponentStarter.INIT_SUBPATH;
 
   final CuratorFramework client;
+  @Getter
   final String appPrefix;
 
   String path;

@@ -221,7 +221,7 @@ public class ZkConfigPopulator {
     }
   }
 
-  private static final String COMPONENT_IDS = "componentIds";
+  public static final String COMPONENT_IDS = "componentIds";
   public List<String> populateConfigurations(String propFile)
       throws InterruptedException, ConfigurationException {
     Configuration config = ConfigReader.parseFile(propFile);

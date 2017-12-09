@@ -33,7 +33,7 @@ public class AmqServiceComp implements ComponentI {
     public AmqServiceCompConfig(Properties props) {
       super(props);
       brokerName = useProperty(props, "brokerName", "myAmqBroker");
-      brokerUrls = useRequiredProperty(props, "brokerUrl");
+      brokerUrls = useRequiredProperty(props, "brokerUrls");
       tcpBrokerUrl = ConstantsAmq.getTcpBrokerUrl(brokerUrls);
 
       checkRemainingProps(props);
@@ -43,7 +43,7 @@ public class AmqServiceComp implements ComponentI {
   @Override
   public Map<String, Object> getSharedValuesMap() {
     Map<String, Object> map = new HashMap<>();
-    map.put("connectionUrl", config.brokerUrls);
+    map.put("connectionUrls", config.brokerUrls);
     map.put("connectionTcpUrl", config.tcpBrokerUrl);
     log.info("Sharing values to zookeeper: {}", map);
     return map;
