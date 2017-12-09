@@ -82,8 +82,8 @@ public class ZkComponentStopper {
     try {
       Configuration config = ConfigReader.parseFile(propFile);
       log.info("{}\n------", ConfigReader.toStringConfig(config, config.getKeys()));
-      String zkConnectionString=config.getString(Constants.ZOOKEEPER_CONNECT);
-      String zkStartupPathHome=config.getString(Constants.ZOOKEEPER_STARTUPPATH);
+      String zkConnectionString=config.getString(ConstantsZk.ZOOKEEPER_CONNECT);
+      String zkStartupPathHome=config.getString(ConstantsZk.ZOOKEEPER_STARTUPPATH);
 
       Injector injector = Guice.createInjector(new GModuleZooKeeper(zkConnectionString, zkStartupPathHome));
       ZkComponentStopper stopper = injector.getInstance(ZkComponentStopper.class);

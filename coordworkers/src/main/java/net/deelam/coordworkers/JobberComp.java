@@ -13,7 +13,7 @@ import javax.jms.Session;
 import javax.jms.TextMessage;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.deelam.activemq.Constants;
+import net.deelam.activemq.ConstantsAmq;
 import net.deelam.activemq.MQClient;
 import net.deelam.zkbasedinit.ComponentI;
 
@@ -44,7 +44,7 @@ public class JobberComp implements ComponentI {
     // populate and print remaining unused properties
     public JobberCompConfig(Properties props) {
       super(props);
-      brokerUrl = Constants.getTcpBrokerUrl(useRequiredRefProperty(props, "brokerUrl.ref"));
+      brokerUrl = ConstantsAmq.getTcpBrokerUrl(useRequiredRefProperty(props, "brokerUrl.ref"));
       submitJobQueue = useRequiredProperty(props, "msgQ.submitJob");
       jobDoneTopic = useRequiredProperty(props, "msgT.jobDone");
       jobFailedTopic = useRequiredProperty(props, "msgT.jobFailed");

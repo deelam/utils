@@ -28,7 +28,7 @@ public class GModuleZkComponentStarter extends AbstractModule {
 
   @Provides
   protected ZkComponentStarter createZkComponentStarter(CuratorFramework cf,
-      @Named(Constants.ZOOKEEPER_STARTUPPATH) String startupPath) {
+      @Named(ConstantsZk.ZOOKEEPER_STARTUPPATH) String startupPath) {
     ZkComponentStarter compStarter = new ZkComponentStarter(cf, startupPath);
     compStarter.setComponentStartedCallback(c -> startedLatch.countDown());
     compStarter.setStarterCompleteCallback(c -> {
@@ -40,7 +40,7 @@ public class GModuleZkComponentStarter extends AbstractModule {
 
   @Provides
   protected ZkComponentTypeStarter createZkComponentTypeStarter(CuratorFramework cf,
-      @Named(Constants.ZOOKEEPER_STARTUPPATH) String startupPath) {
+      @Named(ConstantsZk.ZOOKEEPER_STARTUPPATH) String startupPath) {
     ZkComponentTypeStarter compStarter = new ZkComponentTypeStarter(cf, startupPath);
     compStarter.setComponentStartedCallback(c -> startedLatch.countDown());
     compStarter.setStarterCompleteCallback(c -> completedLatch.countDown());

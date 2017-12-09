@@ -6,7 +6,7 @@ import java.util.Properties;
 import org.apache.activemq.broker.BrokerService;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import net.deelam.activemq.Constants;
+import net.deelam.activemq.ConstantsAmq;
 import net.deelam.activemq.MQService;
 import net.deelam.zkbasedinit.ComponentI;
 
@@ -34,7 +34,7 @@ public class AmqServiceComp implements ComponentI {
       super(props);
       brokerName = useProperty(props, "brokerName", "myAmqBroker");
       brokerUrls = useRequiredProperty(props, "brokerUrl");
-      tcpBrokerUrl = Constants.getTcpBrokerUrl(brokerUrls);
+      tcpBrokerUrl = ConstantsAmq.getTcpBrokerUrl(brokerUrls);
 
       checkRemainingProps(props);
     }
@@ -52,10 +52,10 @@ public class AmqServiceComp implements ComponentI {
   @Override
   public void start(Properties configMap) {
     config = new AmqServiceCompConfig(configMap);
-    String[] brokerUrls = Constants.parseBrokerUrls(config.brokerUrls);
+    String[] brokerUrls = ConstantsAmq.parseBrokerUrls(config.brokerUrls);
     
-    log.info("System.setProperty: {}={}", Constants.BROKER_URL, config.tcpBrokerUrl);
-    System.setProperty(Constants.BROKER_URL, config.tcpBrokerUrl);
+    log.info("System.setProperty: {}={}", ConstantsAmq.BROKER_URL, config.tcpBrokerUrl);
+    System.setProperty(ConstantsAmq.BROKER_URL, config.tcpBrokerUrl);
 
     if (MQService.jmsServiceExists(config.tcpBrokerUrl)) {
       log.error("JMS service already exists at " + config.tcpBrokerUrl);

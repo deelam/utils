@@ -270,7 +270,7 @@ public class ZkComponentStarter implements ZkComponentStarterI {
     Properties configMap = SerializeUtils.deserializeConfigurationAsProperties(confData);
     configMap.put(ComponentI.ZK_PATH, path);
     configMap.put(ComponentI.COMPONENT_ID, componentId);
-    configMap.put(GModuleZooKeeper.ZOOKEEPER_CONNECT, System.getProperty(GModuleZooKeeper.ZOOKEEPER_CONNECT));
+    configMap.put(ConstantsZk.ZOOKEEPER_CONNECT, System.getProperty(ConstantsZk.ZOOKEEPER_CONNECT));
     log.info("Got config: {}: {}", path, configMap);
     
     // add values for refPaths
@@ -292,8 +292,8 @@ public class ZkComponentStarter implements ZkComponentStarterI {
     List<String> compIdList =
         Arrays.stream(cIds.split(",")).map(String::trim).collect(Collectors.toList());
 
-    String zkConnectionString=config.getString(Constants.ZOOKEEPER_CONNECT);
-    String zkStartupPathHome=config.getString(Constants.ZOOKEEPER_STARTUPPATH);
+    String zkConnectionString=config.getString(ConstantsZk.ZOOKEEPER_CONNECT);
+    String zkStartupPathHome=config.getString(ConstantsZk.ZOOKEEPER_STARTUPPATH);
     go(zkConnectionString, zkStartupPathHome, compIdList);
   }
 
@@ -308,7 +308,7 @@ public class ZkComponentStarter implements ZkComponentStarterI {
 
     CuratorFramework cf = injector.getInstance(CuratorFramework.class);
     String startupPath =
-        injector.getInstance(Key.get(String.class, Names.named(Constants.ZOOKEEPER_STARTUPPATH)));
+        injector.getInstance(Key.get(String.class, Names.named(ConstantsZk.ZOOKEEPER_STARTUPPATH)));
 
     // starts components given an compId and ComponentI subclass
     for (String compId : compIdList) {

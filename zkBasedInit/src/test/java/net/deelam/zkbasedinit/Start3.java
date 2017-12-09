@@ -13,7 +13,7 @@ import com.google.inject.Key;
 import com.google.inject.name.Names;
 import lombok.extern.slf4j.Slf4j;
 import net.deelam.zkbasedinit.ConfigReader;
-import net.deelam.zkbasedinit.Constants;
+import net.deelam.zkbasedinit.ConstantsZk;
 import net.deelam.zkbasedinit.GModuleZkComponentStarter;
 import net.deelam.zkbasedinit.GModuleZooKeeper;
 import net.deelam.zkbasedinit.ZkComponentStarter;
@@ -39,7 +39,7 @@ public class Start3 {
     CuratorFramework cf = injector.getInstance(CuratorFramework.class);
 
     String startupPath =
-        injector.getInstance(Key.get(String.class, Names.named(Constants.ZOOKEEPER_STARTUPPATH)));
+        injector.getInstance(Key.get(String.class, Names.named(ConstantsZk.ZOOKEEPER_STARTUPPATH)));
 
     ZkConfigPopulator cp = injector.getInstance(ZkConfigPopulator.class);
     try {

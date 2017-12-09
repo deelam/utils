@@ -53,12 +53,12 @@ public class ZkConnector {
     Configuration config = ConfigReader.parseFile(propFile);
     log.info("{}\n------", ConfigReader.toStringConfig(config, config.getKeys()));
     
-    String zkConnectionString=config.getString(Constants.ZOOKEEPER_CONNECT);
-    String zkStartupPathHome=config.getString(Constants.ZOOKEEPER_STARTUPPATH);
+    String zkConnectionString=config.getString(ConstantsZk.ZOOKEEPER_CONNECT);
+    String zkStartupPathHome=config.getString(ConstantsZk.ZOOKEEPER_STARTUPPATH);
     Injector injector = Guice.createInjector(new GModuleZooKeeper(zkConnectionString, zkStartupPathHome));
     CuratorFramework cf = injector.getInstance(CuratorFramework.class);
     String startupPath =
-        injector.getInstance(Key.get(String.class, Names.named(Constants.ZOOKEEPER_STARTUPPATH)));
+        injector.getInstance(Key.get(String.class, Names.named(ConstantsZk.ZOOKEEPER_STARTUPPATH)));
     log.info("Tree: {}", ZkConnector.treeToString(cf, Paths.get(startupPath).getParent().toString()));
 
   }
