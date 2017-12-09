@@ -22,8 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class ZkComponentTypeStarter implements ZkComponentStarterI {
 
-  private static final String COPIES_SUBPATH = "/copies";
-
   final CuratorFramework client;
   final String appPrefix;
 

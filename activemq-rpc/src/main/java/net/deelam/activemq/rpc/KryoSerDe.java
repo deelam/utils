@@ -18,6 +18,8 @@ import com.esotericsoftware.kryo.Kryo.DefaultInstantiatorStrategy;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Getter;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
@@ -77,11 +79,18 @@ public final class KryoSerDe {
   public synchronized Object[] readObjects(BytesMessage bytesMsg, int count) {
     try {
       byte[] byteArr = deserializeByteArray(bytesMsg);
-      final Input input = new Input(byteArr);
-      Object[] result = new Object[count];
-      for (int i = 0; i < count; i++)
-        result[i] = kryo.readClassAndObject(input);
-      return result;
+      if(bytesMsg.propertyExists(ENCODING_PARAM) && 
+          bytesMsg.getIntProperty(ENCODING_PARAM)==JSON_ENCODING) {
+        String json = (String) kryo.readClassAndObject(new Input(byteArr));
+        Class<?> clazz=Class.forName(bytesMsg.getStringProperty(CLASSNAME_PARAM));
+        return (Object[]) getObjectMapper().readValue(json, clazz);
+      } else {
+        final Input input = new Input(byteArr);
+        Object[] result = new Object[count];
+        for (int i = 0; i < count; i++)
+          result[i] = kryo.readClassAndObject(input);
+        return result;
+      }
     } catch (Throwable t) {
       log.error("Couldn't read buffer", t);
       return null;
@@ -92,7 +101,13 @@ public final class KryoSerDe {
   public synchronized <T> T readObject(BytesMessage bytesMsg) {
     try {
       byte[] byteArr = deserializeByteArray(bytesMsg);
-      return (T) kryo.readClassAndObject(new Input(byteArr));
+      Object obj = kryo.readClassAndObject(new Input(byteArr));
+      if(bytesMsg.propertyExists(ENCODING_PARAM) && 
+          bytesMsg.getIntProperty(ENCODING_PARAM)==JSON_ENCODING) {
+        Class<?> clazz=Class.forName(bytesMsg.getStringProperty(CLASSNAME_PARAM));
+        obj=getObjectMapper().readValue((String) obj, clazz);
+      }
+      return (T) obj;
     } catch (Throwable t) {
       log.error("Couldn't read buffer", t);
       return null;
@@ -132,15 +147,26 @@ public final class KryoSerDe {
       }
       return msg;
     } catch (Throwable t) {
-      String arrayStr = Arrays.toString(objs);
-      log.error("Couldn't write object of type={}; serializing as string instead: {}", objs.getClass(), arrayStr);
-      final Output output = new Output(new ByteArrayOutputStream());
-      kryo.writeClassAndObject(output, arrayStr);
-      msg.writeBytes(output.toBytes());
-      return msg;
+      try {
+        log.warn("Couldn't serialize using Kryo; falling back to Json", t);
+        msg.setIntProperty(ENCODING_PARAM, JSON_ENCODING);
+        msg.setStringProperty(CLASSNAME_PARAM, objs.getClass().getName());
+        return writeObject(getObjectMapper().writeValueAsString(objs));
+      } catch (Throwable t2) {
+        String arrayStr = Arrays.toString(objs);
+        log.error("Couldn't write object of type={}; serializing as string instead: {}", objs.getClass(), arrayStr);
+        final Output output = new Output(new ByteArrayOutputStream());
+        kryo.writeClassAndObject(output, arrayStr);
+        msg.writeBytes(output.toBytes());
+        return msg;
+      }
     }
   }
-
+  
+  public static final String CLASSNAME_PARAM="CLASS";
+  public static final String ENCODING_PARAM="ENCODING";
+  public static final int JSON_ENCODING=1;
+  
   public synchronized BytesMessage writeObject(Object obj) throws JMSException {
     BytesMessage msg = session.createBytesMessage();
     try {
@@ -153,15 +179,23 @@ public final class KryoSerDe {
       return msg;
     } catch (Throwable t) {
       try {
-        //log.error("t",t);
-        return writeObject(obj.toString());//FIXME: Json.encode(obj));
+        log.warn("Couldn't serialize using Kryo; falling back to Json", t);
+        msg.setIntProperty(ENCODING_PARAM, JSON_ENCODING);
+        msg.setStringProperty(CLASSNAME_PARAM, obj.getClass().getName());
+        return writeObject(getObjectMapper().writeValueAsString(obj));
       } catch (Throwable t2) {
         // TODO: 3: determine appropriate kryo serializer
         //log.error("t2",t2);
         String objStr = obj.toString();
-        log.error("Couldn't write object of {}; serializing as string instead: {}", obj.getClass(), objStr);
+        log.error("Couldn't write object of {}; serializing as string instead: {}", obj.getClass(), objStr, t2);
         return writeObject(objStr);
       }
     }
+  }
+
+  @Getter(lazy=true)
+  private final ObjectMapper objectMapper=privateCreateObjectMapper();
+  private ObjectMapper privateCreateObjectMapper() {
+    return new ObjectMapper();
   }
 }
