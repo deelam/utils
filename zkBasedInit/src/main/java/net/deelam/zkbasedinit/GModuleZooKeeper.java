@@ -61,7 +61,7 @@ public class GModuleZooKeeper extends AbstractModule {
       if (startupPathHome == null || startupPathHome.length()==0) {
         startupPathHome = zkStartupPathHomeS.get();
         if (startupPathHome == null) {
-          startupPathHome = "/test/app1/startup/";
+          startupPathHome = "/test/app3/startup/";
           log.warn("Using default startupPathHome={}", startupPathHome);
         }
         log.info("System.setProperty: {}={}", ConstantsZk.ZOOKEEPER_STARTUPPATH, startupPathHome);

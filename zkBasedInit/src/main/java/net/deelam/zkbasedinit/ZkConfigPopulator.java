@@ -1,6 +1,9 @@
 package net.deelam.zkbasedinit;
 
+import static com.google.common.base.Preconditions.checkState;
 import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -225,10 +228,11 @@ public class ZkConfigPopulator {
   public List<String> populateConfigurations(String propFile)
       throws InterruptedException, ConfigurationException {
     Configuration config = ConfigReader.parseFile(propFile);
-    String componentIds = System.getProperty(COMPONENT_IDS, config.getString(COMPONENT_IDS, ""));
+    String componentIds = System.getProperty(COMPONENT_IDS);
+    if(componentIds==null || componentIds.length()==0)
+      componentIds=config.getString(COMPONENT_IDS, "");
     List<String> compIdList =
-        Arrays.stream(componentIds.split(",")).map(String::trim).collect(Collectors.toList());
-    log.info("componentIds for configuration: {}", compIdList);
+        Arrays.stream(componentIds.split(",")).map(String::trim).filter(s->s.length()>0).collect(Collectors.toList());
     populateConfigurations(config, compIdList);
     return compIdList;
   }
@@ -237,6 +241,11 @@ public class ZkConfigPopulator {
     Map<String, Configuration> subConfigMap = ConfigReader.extractSubconfigMap(config);
     log.info("componentIds in configs: {}", subConfigMap.keySet());
 
+    if(compIdList.isEmpty()) {
+      compIdList=new ArrayList(subConfigMap.keySet());
+    }
+    log.info("componentIds for configuration: {}", compIdList);
+    
     if (compIdList.isEmpty())
       compIdList = new ArrayList<>(subConfigMap.keySet());
     log.info("componentIds to put in ZK: {}", compIdList);

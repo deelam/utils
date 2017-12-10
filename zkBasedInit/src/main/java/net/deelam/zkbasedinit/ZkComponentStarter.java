@@ -287,8 +287,11 @@ public class ZkComponentStarter implements ZkComponentStarterI {
     Configuration config = ConfigReader.parseFile(propFile);
     log.info("{}\n------", ConfigReader.toStringConfig(config, config.getKeys()));
 
-    String cIds = System.getProperty("componentIds",
-        config.getString("componentIds", "jc1, jobStatus, amq, workerType, jobberA"));
+    String cIds = System.getProperty("componentIds");
+    if(cIds==null || cIds.length()==0) {
+        cIds=config.getString("componentIds", "jc1, jobStatus, amq, workerType, jobberA");
+        //testing coordworkers: cIds=config.getString("componentIds", "submitterA, amq, workerType, jobberB");
+    }
     List<String> compIdList =
         Arrays.stream(cIds.split(",")).map(String::trim).collect(Collectors.toList());
 

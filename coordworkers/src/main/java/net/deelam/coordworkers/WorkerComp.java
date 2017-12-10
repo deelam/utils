@@ -163,6 +163,7 @@ public class WorkerComp implements ComponentI {
           } catch (InterruptedException e) {
             e.printStackTrace();
           }
+          log.info("Done working...");
           try {
             if (Math.random() * 2 > 1)
               msgResponder.send(jobDoneTopic, createDoneMsg(job));
