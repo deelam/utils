@@ -16,6 +16,7 @@ public class Log4jUtil {
     File file = new File("log4j.xml");
     if (System.getProperty(LOG4J_CONFIGURATION_KEY) == null && file.exists()) {
       // set a default if file exist
+      System.out.println("System.setProperty: "+LOG4J_CONFIGURATION_KEY+"="+file.toURI().toString());
       System.setProperty(LOG4J_CONFIGURATION_KEY, file.toURI().toString());
       System.out.println("Found log4j.xml file in current directory.  Set " + LOG4J_CONFIGURATION_KEY + "="
           + System.getProperty(LOG4J_CONFIGURATION_KEY));

@@ -239,16 +239,11 @@ public class ZkConfigPopulator {
   public void populateConfigurations(Configuration config, List<String> compIdList)
       throws InterruptedException {
     Map<String, Configuration> subConfigMap = ConfigReader.extractSubconfigMap(config);
-    log.info("componentIds in configs: {}", subConfigMap.keySet());
+    log.info("componentIds available in config file: {}", subConfigMap.keySet());
 
-    if(compIdList.isEmpty()) {
-      compIdList=new ArrayList(subConfigMap.keySet());
-    }
-    log.info("componentIds for configuration: {}", compIdList);
-    
     if (compIdList.isEmpty())
       compIdList = new ArrayList<>(subConfigMap.keySet());
-    log.info("componentIds to put in ZK: {}", compIdList);
+    log.info("ZKCONFIG: Component configurations to put in ZK: {}", compIdList);
 
     completeLatch = new CountDownLatch(compIdList.size());
     setCompleteCallback(p -> completeLatch.countDown());
@@ -274,7 +269,7 @@ public class ZkConfigPopulator {
       compsStillRunning = completeLatch.getCount();
     } while (compsStillRunning > 0);
     
-    log.info("ZKCONFIG: Populated.");
+    log.info("ZKCONFIG: Done populating configs for: {}", compIdList);
   }
   
   CountDownLatch completeLatch;

@@ -53,7 +53,7 @@ public class ProgressState {
     if (msg == null)
       msg="Starting " + jobId + " at "+ now;
     setMessage(msg);
-    log.info("JOB: Starting: {}", msg);
+    log.info("JOB: Start: {}", msg);
     return this;
   }
 
@@ -64,7 +64,7 @@ public class ProgressState {
       setMessage(jobId+" done in "+((System.currentTimeMillis() - startTime)/1000)+" seconds.");
     else
       setMessage(msg);
-    log.info("JOB: Done: {}", msg);
+    log.info("JOB:  Done: {}", msg);
     return this;
   }
 

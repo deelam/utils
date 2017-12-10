@@ -192,7 +192,7 @@ public class ZkComponentStarter implements ZkComponentStarterI {
   private void setSharedValues() {
     component.getSharedValuesMap().forEach((subpath, val) -> {
       String fullpath = Paths.get(path, subpath).toString();
-      log.info("Setting shared value: {}={}", fullpath, val);
+      log.info("COMPSTARTER: Setting shared value for {}: {}={}", componentId, fullpath, val);
       byte[] data = null;
       if (val instanceof byte[])
         data = (byte[]) val;

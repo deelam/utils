@@ -120,7 +120,7 @@ public class TopicUtils implements Closeable {
     replyConsumers.put(responseConsumerId, responseConsumer);
     responseConsumer.setMessageListener((message) -> {
       try {
-        log.info("Producer received: {}", message);
+        log.info("Producer received response from: {}", responseConsumerId);
         String correlId = message.getJMSCorrelationID();
         CombinedResponse<T> combinedResponse =
             (CombinedResponse<T>) correlId2responses.get(correlId);

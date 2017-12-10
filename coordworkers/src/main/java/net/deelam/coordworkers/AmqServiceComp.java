@@ -4,14 +4,17 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import org.apache.activemq.broker.BrokerService;
+import org.slf4j.Logger;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.deelam.activemq.ConstantsAmq;
 import net.deelam.activemq.MQService;
+import net.deelam.utils.ConsoleLogging;
 import net.deelam.zkbasedinit.ComponentI;
 
 @Slf4j
 public class AmqServiceComp implements ComponentI {
+  static final Logger clog=ConsoleLogging.createSlf4jLogger(AmqServiceComp.class);
 
   @Getter
   private boolean running = false;
@@ -69,6 +72,7 @@ public class AmqServiceComp implements ComponentI {
         throw new IllegalStateException("When starting ActiveMQ service", e);
       }
     }
+    log.info("COMP: Started {}", config.getComponentId());
   }
 
   @Override
@@ -78,18 +82,18 @@ public class AmqServiceComp implements ComponentI {
       new Thread(() -> {
         while (running)
           try {
-            log.info("Delay stopping ActiveMQ service to allow clients to disconnect first ...");
+            clog.info("-- Delaying ActiveMQ shutdown to allow clients to disconnect...");
             Thread.sleep(5000);
             if (broker.isStopping()) {
-              log.info("Waiting for ActiveMQ service to stop ... currConnections={}", broker.getCurrentConnections());
+              clog.info("-- Waiting for ActiveMQ service to stop ... currConnections="+broker.getCurrentConnections());
               Thread.sleep(2000);
             } else {
-              log.info("Stopping ActiveMQ service");
+              clog.info("-- Stopping ActiveMQ service");
               broker.stop();
-              Thread.sleep(3000);
+              //Thread.sleep(2000);
             }
           } catch (Exception e) {
-            log.error("When stopping ActiveMQ service", e);
+            log.error("-- When stopping ActiveMQ service", e);
           } finally {
             running = !broker.isStopped();
           }

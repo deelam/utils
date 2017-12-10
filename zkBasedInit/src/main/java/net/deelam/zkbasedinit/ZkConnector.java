@@ -48,6 +48,11 @@ public class ZkConnector {
     }
   }
 
+  public static boolean existsPath(CuratorFramework cf, String path) throws Exception {
+    String appPrefixWithoutFinalSlash = Paths.get(path).toString();
+    return cf.checkExists().forPath(appPrefixWithoutFinalSlash) != null;
+  }
+
   public static void main(String[] args) throws Exception {
     String propFile = (args.length > 0) ? args[0] : "startup.props";
     Configuration config = ConfigReader.parseFile(propFile);
