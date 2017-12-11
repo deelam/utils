@@ -1,9 +1,6 @@
 package net.deelam.zkbasedinit;
 
-import static com.google.common.base.Preconditions.checkState;
 import java.io.IOException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -194,6 +191,7 @@ public class ZkConfigPopulator {
                 break;
               default:
                 log.info("Ignoring event for path={}: {}", path, evt);
+                watchForRequiredPaths(reqPaths, componentStartedConsumer);
                 break;
             }
           });

@@ -131,7 +131,7 @@ public class ZkComponentStarter implements ZkComponentStarterI {
                   try {
                     if (component.reinit(getConfig())) {
                       setSharedValues();
-                      getAsync().setData().forPath(path + STARTED_SUBPATH);
+                      client.setData().forPath(path + STARTED_SUBPATH);
                     }
                   } catch (Exception e) {
                     log.error("Could not reinit component with path=" + path, e);
