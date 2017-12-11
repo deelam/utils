@@ -81,6 +81,12 @@ public class ZkComponentStarter implements ZkComponentStarterI {
     component = comp;
   }
 
+  @Setter
+  private Consumer<Exception> exceptionWhileStartingHandler=(e)->{};
+
+  @Setter
+  private Consumer<Exception> exceptionHandler=(e)->{};
+
   /**
    * If configuration is ready, starts component synchronously. Otherwise, asynchronously waits for
    * configuration to be ready before starting component.
@@ -185,6 +191,7 @@ public class ZkComponentStarter implements ZkComponentStarterI {
       }
     } catch (Exception e) {
       log.error("Could not start component with path=" + path, e);
+      exceptionWhileStartingHandler.accept(e);
       return false;
     }
   }
@@ -201,12 +208,14 @@ public class ZkComponentStarter implements ZkComponentStarterI {
           data = SerializeUtils.serialize(val);
         } catch (IOException e) {
           log.error("When serializing shared values", e);
+          exceptionHandler.accept(e);
         }
       if (data != null)
         try {
           client.create().withMode(CreateMode.EPHEMERAL).forPath(fullpath, data);
         } catch (Exception e) {
           log.error("When creating node for shared value at: " + fullpath, e);
+          exceptionHandler.accept(e);
         }
     });
   }
@@ -296,12 +305,16 @@ public class ZkComponentStarter implements ZkComponentStarterI {
         Arrays.stream(cIds.split(",")).map(String::trim).collect(Collectors.toList());
 
     String zkConnectionString=config.getString(ConstantsZk.ZOOKEEPER_CONNECT);
-    String zkStartupPathHome=config.getString(ConstantsZk.ZOOKEEPER_STARTUPPATH);
-    go(zkConnectionString, zkStartupPathHome, compIdList);
+    String zkStartupPathHome = config.getString(ConstantsZk.ZOOKEEPER_STARTUPPATH);
+    Consumer<Exception> exceptionHandler = e -> {
+      throw new RuntimeException(e);
+    };
+    go(zkConnectionString, zkStartupPathHome, compIdList, exceptionHandler, exceptionHandler);
   }
 
-  public static void go(String zkConnectionString, String zkStartupPathHome, List<String> compIdList)
-      throws Exception {
+  public static void go(String zkConnectionString, String zkStartupPathHome,
+      List<String> compIdList, Consumer<Exception> exceptionHandler,
+      Consumer<Exception> exceptionWhileStartingHandler) throws Exception {
     log.info("componentIds to start: {}", compIdList);
     GModuleZkComponentStarter moduleZkComponentStarter =
         new GModuleZkComponentStarter(compIdList.size());
@@ -315,7 +328,7 @@ public class ZkComponentStarter implements ZkComponentStarterI {
 
     // starts components given an compId and ComponentI subclass
     for (String compId : compIdList) {
-      startComponent(injector, compId);
+      startComponent(injector, compId, exceptionHandler, exceptionWhileStartingHandler);
       log.info("Tree after starting {}: {}", compId, ZkConnector.treeToString(cf, startupPath));
     }
 
@@ -339,13 +352,19 @@ public class ZkComponentStarter implements ZkComponentStarterI {
     log.info("Tree after components stopped: {}", ZkConnector.treeToString(cf, startupPath));
   }
 
-  public static void startComponent(Injector injector, String compId) throws Exception {
+  public static void startComponent(Injector injector, String compId,
+      Consumer<Exception> exceptionHandler, Consumer<Exception> exceptionWhileStartingHandler)
+      throws Exception {
     ComponentI aComp = null;
     if (compId.endsWith("Type")) {
       ZkComponentTypeStarter compStarter = injector.getInstance(ZkComponentTypeStarter.class);
+      compStarter.setExceptionHandler(exceptionHandler);
+      compStarter.setExceptionWhileStartingHandler(exceptionWhileStartingHandler);
       compStarter.startWithCopyOf(compId, compId.substring(0, compId.length() - 4), aComp);
     } else {
       ZkComponentStarter compStarter = injector.getInstance(ZkComponentStarter.class);
+      compStarter.setExceptionHandler(exceptionHandler);
+      compStarter.setExceptionWhileStartingHandler(exceptionWhileStartingHandler);
       compStarter.startWithId(compId, aComp);
     }
   }

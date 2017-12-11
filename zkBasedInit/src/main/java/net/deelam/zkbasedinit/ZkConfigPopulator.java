@@ -109,7 +109,7 @@ public class ZkConfigPopulator {
         String relativePath = configuration.getString(k);
         String watchPath = appPrefix + relativePath;
         if (!refPathValues.containsKey(relativePath) || refPathValues.get(relativePath) == null) {
-          byte[] value = getZkPathIfExists(watchPath);
+          byte[] value = getDataIfExists(watchPath);
           if (value == null)
             refPaths.add(watchPath);
           else
@@ -117,6 +117,7 @@ public class ZkConfigPopulator {
               refPathValues.put(relativePath, SerializeUtils.deserialize(value));
             } catch (ClassNotFoundException | IOException e) {
               log.warn("When deserializing referenced path value",e);
+              exceptionHandler.accept(e);
               refPathValues.put(relativePath, value);
             }
         }
@@ -125,7 +126,7 @@ public class ZkConfigPopulator {
     return refPaths;
   }
 
-  public byte[] getZkPathIfExists(String path) {
+  public byte[] getDataIfExists(String path) {
     try {
       if (client.checkExists().forPath(path) != null) {
         return client.getData().forPath(path);
@@ -146,6 +147,7 @@ public class ZkConfigPopulator {
           return fullPath;
       } catch (Exception e) {
         log.error("When checking if required path exists", e);
+        exceptionHandler.accept(e);
         return fullPath;
       }
       return null;
@@ -174,6 +176,7 @@ public class ZkConfigPopulator {
       client.create().forPath(initPath);
       completeCallback.accept(initPath);
     } catch (Exception e) {
+      exceptionHandler.accept(e);
       throw new RuntimeException(e);
     }
   }
@@ -217,13 +220,19 @@ public class ZkConfigPopulator {
     if (cleanUpOnly) {
       cp.cleanup();
     } else {
-      cp.populateConfigurations(propFile);
+      Consumer<Exception> exceptionHandler = e -> {
+        throw new RuntimeException(e);
+      };
+      cp.populateConfigurations(propFile, exceptionHandler);
       log.info("Tree after config: {}", ZkConnector.treeToString(cp.client, cp.appPrefix));
     }
   }
 
+  @Setter
+  private Consumer<Exception> exceptionHandler=(e)->{};
+
   public static final String COMPONENT_IDS = "componentIds";
-  public List<String> populateConfigurations(String propFile)
+  public List<String> populateConfigurations(String propFile, Consumer<Exception> exceptionHandler)
       throws InterruptedException, ConfigurationException {
     Configuration config = ConfigReader.parseFile(propFile);
     String componentIds = System.getProperty(COMPONENT_IDS);
@@ -256,6 +265,7 @@ public class ZkConfigPopulator {
         populateConfig(compId, subconfig);
       } catch (Exception ex) {
         log.error("When populating config for " + compId, ex);
+        exceptionHandler.accept(ex);
       }
       triggerInitializationWhenReady(compId, subconfig);
     });

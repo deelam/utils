@@ -56,6 +56,9 @@ public class ZkComponentTypeStarter implements ZkComponentStarterI {
     }
   }
 
+  @Setter
+  private Consumer<Exception> exceptionHandler=(e)->{};
+  
   private void asyncWatchForInitPathEvent(String sourcePath, String componentPrefix, ComponentI comp) {
     log.info("watchForInitPathEvent: {}", sourcePath);
     getAsync().with(WatchMode.successOnly).watched().checkExists()
@@ -89,6 +92,9 @@ public class ZkComponentTypeStarter implements ZkComponentStarterI {
   @Getter
   private String componentId;
 
+  @Setter
+  private Consumer<Exception> exceptionWhileStartingHandler;
+  
   private void copyConfigAndStart(String sourcePath, String componentPrefix, ComponentI comp) {
     // create ephemeral child znode $sourcePath/copies/$componentPrefix-001
     getAsync().create()
@@ -109,6 +115,7 @@ public class ZkComponentTypeStarter implements ZkComponentStarterI {
               copyConfAndInit(sourcePath, newPath);
             } catch (Exception e) {
               starterCompleteCallback.accept(comp);
+              exceptionHandler.accept(e);
               throw new RuntimeException(e);
             }
             try {
@@ -117,8 +124,11 @@ public class ZkComponentTypeStarter implements ZkComponentStarterI {
                 starter.setComponentStartedCallback(componentStartedCallback);
               if (starterCompleteCallback != null)
                 starter.setStarterCompleteCallback(starterCompleteCallback);
+              starter.setExceptionHandler(exceptionHandler);
+              starter.setExceptionWhileStartingHandler(exceptionWhileStartingHandler);
               starter.startWithId(componentId, comp);
             } catch (Exception e) {
+              exceptionHandler.accept(e);
               throw new RuntimeException(e);
             }
           });
