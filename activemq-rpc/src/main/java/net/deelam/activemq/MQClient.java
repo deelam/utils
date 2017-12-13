@@ -14,13 +14,27 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class MQClient {
 
+  public static Connection tryUntilConnect(String brokerURL) throws JMSException {
+    do {
+      try {
+        return connect(brokerURL);
+      }catch(JMSException e) {
+        log.info("AMQ: Couldn't connect; will try again in a bit: {}" , e.getMessage());
+        try {
+          Thread.sleep(500);
+        } catch (InterruptedException e1) {
+        }
+      }
+    }while(true);
+  }
+  
   public static Connection connect(String brokerURL) throws JMSException {
     Preconditions.checkNotNull(brokerURL);
     ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory(brokerURL);
     factory.setTrustAllPackages(true); // Needed for sending ObjectMessages http://activemq.apache.org/objectmessage.html
     Connection connection = factory.createConnection();
     connection.start();
-    log.debug("Remember to close connection: {}", connection);
+    log.debug("AMQ: Remember to close connection: {}", connection);
     return connection;
   }
 

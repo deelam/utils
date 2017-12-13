@@ -2,6 +2,7 @@ package net.deelam.activemq;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.TimerTask;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import javax.jms.BytesMessage;
 import javax.jms.DeliveryMode;
@@ -24,6 +26,7 @@ import javax.jms.ObjectMessage;
 import javax.jms.Session;
 import javax.jms.TemporaryQueue;
 import javax.jms.TextMessage;
+import org.apache.activemq.command.ConsumerInfo;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import net.deelam.activemq.rpc.KryoSerDe;
@@ -63,6 +66,14 @@ public class TopicUtils implements Closeable {
     responseTimer = new Timer();
   }
 
+  public void setNewSubscriberHandler(Consumer<ConsumerInfo> newSubscriberHandler){
+    subscribersCounter.setNewSubscriberHandler(newSubscriberHandler);
+  }
+  
+  public int getSubscriberCount() {
+    return subscribersCounter.count;
+  }
+
   private Map<String, CombinedResponse<?>> correlId2responses = new HashMap<>();
 
   public <T> List<T> query(String responseConsumerId, Message message) throws JMSException {
@@ -88,30 +99,37 @@ public class TopicUtils implements Closeable {
               + responseConsumerId);
     }
 
-    CombinedResponse<T> responseF = new CombinedResponse<>(subscribersCounter.getCount());
-    correlId2responses.put(responseF.getCorrelationID(), responseF);
-    // ensure correlId2responses entries are removed after timeout
-    responseTimer.schedule(new TimerTask() {
-      @Override
-      public void run() {
-        if (correlId2responses.remove(responseF.getCorrelationID()) != null)
-          if(!responseF.getFuture().isDone()) {
-            log.info("Removed timed-out CombinedResponse and completing future: {}", responseF);
-            responseF.getFuture().complete(responseF.getResponses());
-          } else
-            log.debug("Removed completed CombinedResponse: {}", responseF);
-      }
-    }, (responseTimeout + 1) * 1000);
-
-    message.setJMSCorrelationID(responseF.getCorrelationID());
-    message.setJMSReplyTo(replyInbox);
-    producer.send(message);
-    return responseF;
+    if(subscribersCounter.getCount()==0) {
+      CombinedResponse<T> responseF = new CombinedResponse<>(0);
+      responseF.getFuture().complete(Collections.EMPTY_LIST);
+      return responseF;
+    } else {
+      CombinedResponse<T> responseF = new CombinedResponse<>(subscribersCounter.getCount());
+      correlId2responses.put(responseF.getCorrelationID(), responseF);
+      // ensure correlId2responses entries are removed after timeout
+      responseTimer.schedule(new TimerTask() {
+        @Override
+        public void run() {
+          if (correlId2responses.remove(responseF.getCorrelationID()) != null)
+            if(!responseF.getFuture().isDone()) {
+              log.info("Removed timed-out CombinedResponse and completing future: {}", responseF);
+              responseF.getFuture().complete(responseF.getResponses());
+            } else
+              log.debug("Removed completed CombinedResponse: {}", responseF);
+        }
+      }, (responseTimeout + 1) * 1000);
+  
+      message.setJMSCorrelationID(responseF.getCorrelationID());
+      message.setJMSReplyTo(replyInbox);
+      producer.send(message);
+      return responseF;
+    }
   }
 
   private Map<String, TemporaryQueue> replyInboxes = new HashMap<>();
   private Map<String, MessageConsumer> replyConsumers = new HashMap<>();
 
+  @SuppressWarnings("unchecked")
   public <T> MessageConsumer listenToTopicConsumerResponses(String responseConsumerId,
       Function<Message, T> responseMapper) throws JMSException {
     TemporaryQueue replyInbox = session.createTemporaryQueue();

@@ -48,19 +48,27 @@ public class ActiveMqRpcUtil {
   static int nextCorrelId() {
     return ++privateCorrelationIdCounter;
   }
-  
-  @SuppressWarnings("unchecked")
-  public <T> T createClient(Class<T> iface) throws JMSException {
-    final KryoSerDe serde = new KryoSerDe(session);
 
-    Destination topic = session.createTopic(address + ".topic");
+  private MessageProducer createTopicProducer(String publishAddr) throws JMSException {
+    Destination topic = session.createTopic(publishAddr);
     MessageProducer topicMsgProducer = session.createProducer(topic);
     topicMsgProducer.setDeliveryMode(deliveryMode);
+    return topicMsgProducer;
+  }
+
+  public <T> T createClient(Class<T> iface) throws JMSException {
+    return createClient(iface, null);
+  }
+  @SuppressWarnings("unchecked")
+  public <T> T createClient(Class<T> iface, String publishAddr) throws JMSException {
+    final KryoSerDe serde = new KryoSerDe(session);
+
+    MessageProducer topicMsgProducer= (publishAddr==null)?null:createTopicProducer(publishAddr);
 
     Destination queue = session.createQueue(address + ".queue");
     MessageProducer queueMsgProducer = session.createProducer(queue);
     queueMsgProducer.setDeliveryMode(deliveryMode);
-
+    
     final String clientId = iface.getSimpleName()+nextProxyId();
     Destination replyQueue = session.createQueue(address + ".replyQ." + clientId);
     MessageConsumer responseConsumer = session.createConsumer(replyQueue);
@@ -151,7 +159,10 @@ public class ActiveMqRpcUtil {
         });
   }
 
-  public <T> void registerServer(T service) {
+  public <T> void registerServer(T service) throws JMSException {
+    registerServer(service, null);
+  }
+  public <T> void registerServer(T service, String publishAddr) throws JMSException {
     log.info("Register server: {} at address={}", service.getClass().getName(), address);
     HashMap<String, Method> methods = new HashMap<>();
     for (Method method : service.getClass().getDeclaredMethods()) {
@@ -161,13 +172,13 @@ public class ActiveMqRpcUtil {
     final KryoSerDe serde = new KryoSerDe(session);
     log.info("server class={}", service.getClass().getSimpleName());
 
+    MessageProducer producer = session.createProducer(null);
+    //Setup a message producer to respond to messages from clients, we will get the destination
+    //to send to from the JMSReplyTo header field from a Message
+    producer.setDeliveryMode(deliveryMode);
+
     MessageListener msgListener = msg -> {
       try {
-        MessageProducer producer = session.createProducer(null);
-        //Setup a message producer to respond to messages from clients, we will get the destination
-        //to send to from the JMSReplyTo header field from a Message
-        producer.setDeliveryMode(deliveryMode);
-
         if (msg instanceof BytesMessage) {
           BytesMessage bytesMsg = (BytesMessage) msg;
           String methodId = bytesMsg.getStringProperty(HEADER_METHOD_ID);
@@ -229,13 +240,15 @@ public class ActiveMqRpcUtil {
     };
 
     try{
-      Destination topic = session.createTopic(address + ".topic");
-      MessageConsumer topicMsgConsumer = session.createConsumer(topic);
-      topicMsgConsumer.setMessageListener(msgListener);
-  
       Destination queue = session.createQueue(address + ".queue");
       MessageConsumer queueMsgConsumer = session.createConsumer(queue);
       queueMsgConsumer.setMessageListener(msgListener);
+      
+      if(publishAddr!=null) {
+        Destination topic = session.createTopic(publishAddr);
+        MessageConsumer topicMsgConsumer = session.createConsumer(topic);
+        topicMsgConsumer.setMessageListener(msgListener);
+      }
     }catch(JMSException je){
       log.error("",je);
     }
